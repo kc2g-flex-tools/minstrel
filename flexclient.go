@@ -48,6 +48,13 @@ func setClientID(clientID string) error {
 	return nil
 }
 
+type WFState struct {
+	width      uint16
+	bins       []uint16
+	timecode   uint32
+	binsFilled uint16
+}
+
 type RadioState struct {
 	FlexClient      *flexclient.FlexClient
 	UI              *ui.UI
@@ -55,6 +62,7 @@ type RadioState struct {
 	ClientID        string
 	WaterfallStream uint32
 	AudioStream     uint32
+	WFState         WFState
 }
 
 func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio) *RadioState {
@@ -200,25 +208,27 @@ func (rs *RadioState) updateGUI() {
 	rs.UI.Widgets.WaterfallPage.SetSlices(slices)
 }
 
-var wfstate struct {
-	width    uint16
-	bins     []uint16
-	timecode uint32
-}
-
 func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	data := vita.ParseVitaWaterfall(pkt.Payload, pkt.Preamble)
-	if data.TotalBinsInFrame != wfstate.width {
+	if data.TotalBinsInFrame != rs.WFState.width {
 		rs.UI.Widgets.WaterfallPage.Waterfall.SetBins(data.TotalBinsInFrame)
-		wfstate.width = data.TotalBinsInFrame
-		wfstate.bins = make([]uint16, data.TotalBinsInFrame)
+		rs.WFState.width = data.TotalBinsInFrame
+		rs.WFState.bins = make([]uint16, data.TotalBinsInFrame)
 	}
 
-	copy(wfstate.bins[int(data.FirstBinIndex):int(data.FirstBinIndex)+int(data.Width)], data.Data)
+	// TODO: FlexLib does a fancy thing here where it keeps several "in-progress" rows
+	// keyed by timecode, and flushes them out as they fill, which I guess can be useful
+	// in case of packet reordering.
+	if data.Timecode != rs.WFState.timecode {
+		rs.WFState.timecode = data.Timecode
+		rs.WFState.binsFilled = 0
+	}
 
-	if data.Timecode != wfstate.timecode {
-		rs.UI.Widgets.WaterfallPage.Waterfall.AddRow(wfstate.bins, data.AutoBlackLevel)
-		wfstate.timecode = data.Timecode
+	copy(rs.WFState.bins[int(data.FirstBinIndex):int(data.FirstBinIndex)+int(data.Width)], data.Data)
+	rs.WFState.binsFilled += data.Width
+
+	if rs.WFState.binsFilled == rs.WFState.width {
+		rs.UI.Widgets.WaterfallPage.Waterfall.AddRow(rs.WFState.bins, data.AutoBlackLevel)
 	}
 }
 
