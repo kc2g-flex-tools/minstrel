@@ -20,10 +20,10 @@ type WaterfallWidgets struct {
 type Slice struct {
 	Container *widget.Container
 	Letter    *widget.Text
-	Frequency *widget.TextArea
-	RXAnt     *widget.TextArea
-	TXAnt     *widget.TextArea
-	Mode      *widget.TextArea
+	Frequency *widget.Text
+	RXAnt     *widget.Text
+	TXAnt     *widget.Text
+	Mode      *widget.Text
 }
 
 type Waterfall struct {
@@ -42,7 +42,7 @@ func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
 	s.Container = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4,
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(4)),
+			widget.RowLayoutOpts.Padding(widget.Insets{Left: 12, Right: 12, Top: 4, Bottom: 4}),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(
@@ -55,7 +55,7 @@ func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
 	row1 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Spacing(4),
+			widget.RowLayoutOpts.Spacing(8),
 		)),
 	)
 	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
@@ -65,9 +65,9 @@ func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
 	)
 	letterContainer.AddChild(s.Letter)
 	row1.AddChild(letterContainer)
-	s.RXAnt = u.MakeTextArea("Roboto-24", colornames.Deepskyblue, colornames.Black)
+	s.RXAnt = u.MakeText("Roboto-24", colornames.Deepskyblue)
 	row1.AddChild(s.RXAnt)
-	s.TXAnt = u.MakeTextArea("Roboto-24", colornames.Red, colornames.Black)
+	s.TXAnt = u.MakeText("Roboto-24", colornames.Red)
 	row1.AddChild(s.TXAnt)
 	s.Container.AddChild(row1)
 
@@ -77,9 +77,9 @@ func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
 			widget.RowLayoutOpts.Spacing(4),
 		)),
 	)
-	s.Frequency = u.MakeTextArea("Roboto-36", colornames.Seashell, colornames.Black)
+	s.Frequency = u.MakeText("Roboto-36", colornames.Seashell)
 	row2.AddChild(s.Frequency)
-	s.Mode = u.MakeTextArea("Roboto-18", colornames.Lightgray, colornames.Black)
+	s.Mode = u.MakeText("Roboto-18", colornames.Lightgray)
 	s.Container.AddChild(row2)
 	return s
 }
@@ -142,10 +142,10 @@ func (w *WaterfallWidgets) SetSlices(slices map[string]SliceData) {
 			continue
 		}
 		widg.Container.GetWidget().Visibility = widget.Visibility_Show
-		widg.Frequency.SetText(slice.FreqFormatted)
-		widg.Mode.SetText(slice.Mode)
-		widg.RXAnt.SetText(slice.RXAnt)
-		widg.TXAnt.SetText(slice.TXAnt)
+		widg.Frequency.Label = slice.FreqFormatted
+		widg.Mode.Label = slice.Mode
+		widg.RXAnt.Label = slice.RXAnt
+		widg.TXAnt.Label = slice.TXAnt
 	}
 }
 

@@ -81,6 +81,16 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(
 	)
 }
 
+func (u *UI) MakeText(fontName string, fgColor color.Color, opts ...widget.TextOpt) *widget.Text {
+	opts = append(
+		[]widget.TextOpt{
+			widget.TextOpts.Text("", u.font[fontName], fgColor),
+		},
+		opts...,
+	)
+	return widget.NewText(opts...)
+}
+
 func (u *UI) MakeTextArea(fontName string, fgColor color.Color, bgColor color.Color) *widget.TextArea {
 	return widget.NewTextArea(
 		widget.TextAreaOpts.FontFace(u.font[fontName]),
