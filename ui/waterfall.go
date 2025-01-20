@@ -89,7 +89,7 @@ func (u *UI) MakeWaterfallPage() {
 	wf.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true, true}),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(8)),
 			widget.GridLayoutOpts.Spacing(0, 4),
 		)),

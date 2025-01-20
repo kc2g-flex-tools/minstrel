@@ -142,20 +142,6 @@ func (u *UI) Draw(screen *ebiten.Image) {
 }
 
 func (u *UI) Layout(width, height int) (int, int) {
-	if width > 1600 {
-		width = 1600
-	}
-	if height > 960 {
-		height = 960
-	}
-
-	if height > 9*width/16 {
-		height = 9 * width / 16
-	} else {
-		if width > 16*height/9 {
-			width = 16 * height / 9
-		}
-	}
 	if u.Width != width || u.Height != height {
 		u.Width = width
 		u.Height = height
