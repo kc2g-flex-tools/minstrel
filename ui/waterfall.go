@@ -35,6 +35,10 @@ type Waterfall struct {
 	Height     int
 	Bins       int
 	ScrollPos  int
+	DispLow    float64
+	DispHigh   float64
+	DataLow    float64
+	DataHigh   float64
 }
 
 func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
@@ -207,7 +211,9 @@ func (wf *Waterfall) Update() {
 	}
 
 	geom := &ebiten.GeoM{}
-	geom.Scale(float64(wf.Width)/float64(wf.Bins), 1)
+	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins), 1)
+	geom.Translate(wf.DataLow-wf.DispLow, 1)
+	geom.Scale(float64(wf.Width)/(wf.DispHigh-wf.DispLow), 1)
 	wf.Widget.Image.DrawImage(
 		wf.BackBuffer.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.Height)).(*ebiten.Image),
 		&ebiten.DrawImageOptions{GeoM: *geom, Filter: ebiten.FilterLinear},

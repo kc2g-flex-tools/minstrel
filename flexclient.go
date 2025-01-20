@@ -53,6 +53,8 @@ type WFState struct {
 	bins       []uint16
 	timecode   uint32
 	binsFilled uint16
+	dataLow    float64
+	dataHigh   float64
 }
 
 type RadioState struct {
@@ -139,6 +141,10 @@ func (rs *RadioState) Run() {
 				} else {
 					log.Println("my waterfall is", streamStr)
 					rs.WaterfallStream = uint32(streamId)
+					center, _ := strconv.ParseFloat(st.CurrentState["center"], 64)
+					span, _ := strconv.ParseFloat(st.CurrentState["bandwidth"], 64)
+					rs.UI.Widgets.WaterfallPage.Waterfall.DispLow = center - span/2
+					rs.UI.Widgets.WaterfallPage.Waterfall.DispHigh = center + span/2
 				}
 			}
 		case st := <-streams.Updates:
@@ -221,6 +227,8 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	// in case of packet reordering.
 	if data.Timecode != rs.WFState.timecode {
 		rs.WFState.timecode = data.Timecode
+		rs.WFState.dataLow = float64(data.FrameLowFreq) / 1e6
+		rs.WFState.dataHigh = float64(data.FrameLowFreq+uint64(data.TotalBinsInFrame)*data.BinBandwidth) / 1e6
 		rs.WFState.binsFilled = 0
 	}
 
@@ -228,6 +236,8 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	rs.WFState.binsFilled += data.Width
 
 	if rs.WFState.binsFilled == rs.WFState.width {
+		rs.UI.Widgets.WaterfallPage.Waterfall.DataLow = rs.WFState.dataLow
+		rs.UI.Widgets.WaterfallPage.Waterfall.DataHigh = rs.WFState.dataHigh
 		rs.UI.Widgets.WaterfallPage.Waterfall.AddRow(rs.WFState.bins, data.AutoBlackLevel)
 	}
 }
