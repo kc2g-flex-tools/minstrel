@@ -30,24 +30,25 @@ type Slice struct {
 }
 
 type Waterfall struct {
-	Widget        *widget.Graphic
-	Img           *ebiten.Image
-	BackBuffer    *ebiten.Image
-	RowBuffer     []byte
-	Width         int
-	Height        int
-	Bins          int
-	ScrollPos     int
-	DispLow       float64
-	DispHigh      float64
-	DispLowLatch  float64
-	DispHighLatch float64
-	DataLow       float64
-	DataHigh      float64
-	PrevDataLow   float64
-	PrevDataHigh  float64
-	SliceBwImg    *ebimage.NineSlice
-	SliceMarkImg  *ebimage.NineSlice
+	Widget            *widget.Graphic
+	Img               *ebiten.Image
+	BackBuffer        *ebiten.Image
+	RowBuffer         []byte
+	Width             int
+	Height            int
+	Bins              int
+	ScrollPos         int
+	DispLow           float64
+	DispHigh          float64
+	DispLowLatch      float64
+	DispHighLatch     float64
+	DataLow           float64
+	DataHigh          float64
+	PrevDataLow       float64
+	PrevDataHigh      float64
+	SliceBwImg        *ebimage.NineSlice
+	SliceMarkImg      *ebimage.NineSlice
+	ScrollAccumulator float64
 }
 
 func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
@@ -259,16 +260,20 @@ func (wf *Waterfall) Update(u *UI) {
 			wf.BackBuffer.Fill(colornames.Black)
 		} else {
 			freqShift := wf.PrevDataLow - wf.DataLow
-			binShift := math.Round(freqShift * float64(wf.Bins) / (wf.DataHigh - wf.DataLow))
-			oldBb := wf.BackBuffer
-			geom := ebiten.GeoM{}
-			geom.Translate(binShift, 0)
-			wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
-			wf.BackBuffer.Fill(colornames.Black)
-			wf.BackBuffer.DrawImage(
-				oldBb, &ebiten.DrawImageOptions{GeoM: geom},
-			)
-			oldBb.Deallocate()
+			wf.ScrollAccumulator += freqShift * float64(wf.Bins) / (wf.DataHigh - wf.DataLow)
+			binShift := float64(int(wf.ScrollAccumulator))
+			wf.ScrollAccumulator -= binShift
+			if binShift != 0 {
+				oldBb := wf.BackBuffer
+				geom := ebiten.GeoM{}
+				geom.Translate(binShift, 0)
+				wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
+				wf.BackBuffer.Fill(colornames.Black)
+				wf.BackBuffer.DrawImage(
+					oldBb, &ebiten.DrawImageOptions{GeoM: geom},
+				)
+				oldBb.Deallocate()
+			}
 		}
 		wf.PrevDataLow, wf.PrevDataHigh = wf.DataLow, wf.DataHigh
 	}
