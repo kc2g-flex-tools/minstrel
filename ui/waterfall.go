@@ -181,6 +181,9 @@ func (wf *Waterfall) SetBins(w uint16) {
 	wf.Bins = int(w)
 	wf.RowBuffer = make([]byte, 4*wf.Bins)
 	if wf.Height != 0 {
+		if wf.BackBuffer != nil {
+			wf.BackBuffer.Deallocate()
+		}
 		wf.BackBuffer = ebiten.NewImage(wf.Bins, wf.Height)
 		wf.BackBuffer.Fill(colornames.Black)
 	}
@@ -220,15 +223,33 @@ func (wf *Waterfall) Update(u *UI) {
 	width, height := rect.Dx(), rect.Dy()
 	if wf.Width != width || wf.Height != height {
 		log.Printf("wf rect %d x %d\n", width, height)
+		if wf.Height != height {
+			oldBB := wf.BackBuffer
+			// Make a new backbuffer of the correct height.
+			wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
+			// Fill any increased height with black
+			wf.BackBuffer.Fill(colornames.Black)
+			if oldBB != nil {
+				// Copy the old backbuffer into the new one, moving scrollpos to 0
+				// so that if the height is decreasing we keep the newest data.
+				wf.BackBuffer.DrawImage(
+					oldBB.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.Height)).(*ebiten.Image),
+					nil,
+				)
+				geom := ebiten.GeoM{}
+				geom.Translate(0, float64(wf.Height-wf.ScrollPos))
+				wf.BackBuffer.DrawImage(
+					oldBB.SubImage(image.Rect(0, 0, wf.Bins, wf.ScrollPos)).(*ebiten.Image),
+					&ebiten.DrawImageOptions{GeoM: geom},
+				)
+				oldBB.Deallocate()
+			}
+			wf.ScrollPos = 0
+		}
+		// Update the size and create the new front buffer
 		wf.Width, wf.Height = width, height
 		wf.Img = ebiten.NewImage(width, height)
 		wf.Widget.Image = wf.Img
-		// TODO: we can copy the old backbuffer into the new one before
-		// destroying it, but we have to take into account `ScrollPos`, not
-		// just copy from the top.
-		wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
-		wf.BackBuffer.Fill(colornames.Black)
-		wf.ScrollPos = height
 	}
 
 	if wf.DataLow != wf.PrevDataLow || wf.DataHigh != wf.PrevDataHigh {
