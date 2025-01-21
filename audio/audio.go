@@ -15,7 +15,7 @@ type Audio struct {
 	Buffer  *ringbuffer.RingBuffer
 	Opus    *opus.Decoder
 	Player  *ebaudio.Player
-	PCMBuf  [1440]int16
+	PCMBuf  [512]int16
 }
 
 func NewAudio() *Audio {
