@@ -7,7 +7,7 @@ require (
 	github.com/ebitenui/ebitenui v0.6.0
 	github.com/hajimehoshi/ebiten/v2 v2.8.6
 	github.com/hb9fxq/flexlib-go v0.0.0-20201128184122-8acafd8a4e14
-	github.com/kc2g-flex-tools/flexclient v0.4.0
+	github.com/kc2g-flex-tools/flexclient v0.5.0
 	github.com/smallnest/ringbuffer v0.0.0-20241129171057-356c688ba81d
 	github.com/tinne26/badcolor v0.0.0-20240606171339-6b0c9b4d5e38
 	github.com/vimeo/dials v0.17.1
@@ -28,5 +28,3 @@ require (
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
 )
-
-replace github.com/kc2g-flex-tools/flexclient => /home/andrew/Sync/flexclient
