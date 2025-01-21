@@ -124,7 +124,7 @@ func (u *UI) Update() error {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 	if u.state == MainState {
-		u.Widgets.WaterfallPage.Waterfall.Update()
+		u.Widgets.WaterfallPage.Waterfall.Update(u)
 	}
 	u.eui.Update()
 	u.update = true

@@ -4,7 +4,9 @@ import (
 	"image"
 	"image/color"
 	"log"
+	"math"
 
+	ebimage "github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
@@ -24,21 +26,28 @@ type Slice struct {
 	RXAnt     *widget.Text
 	TXAnt     *widget.Text
 	Mode      *widget.Text
+	Data      SliceData
 }
 
 type Waterfall struct {
-	Widget     *widget.Graphic
-	Img        *ebiten.Image
-	BackBuffer *ebiten.Image
-	RowBuffer  []byte
-	Width      int
-	Height     int
-	Bins       int
-	ScrollPos  int
-	DispLow    float64
-	DispHigh   float64
-	DataLow    float64
-	DataHigh   float64
+	Widget        *widget.Graphic
+	Img           *ebiten.Image
+	BackBuffer    *ebiten.Image
+	RowBuffer     []byte
+	Width         int
+	Height        int
+	Bins          int
+	ScrollPos     int
+	DispLow       float64
+	DispHigh      float64
+	DispLowLatch  float64
+	DispHighLatch float64
+	DataLow       float64
+	DataHigh      float64
+	PrevDataLow   float64
+	PrevDataHigh  float64
+	SliceBwImg    *ebimage.NineSlice
+	SliceMarkImg  *ebimage.NineSlice
 }
 
 func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
@@ -118,6 +127,8 @@ func (u *UI) MakeWaterfallPage() {
 	wf.Container.AddChild(wf.SliceArea)
 	wf.Waterfall = u.MakeWaterfall()
 	wf.Container.AddChild(wf.Waterfall.Widget)
+	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
+	wf.Waterfall.SliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
 	u.Widgets.WaterfallPage = wf
 }
 
@@ -135,12 +146,15 @@ type SliceData struct {
 	Modes         []string
 	RXAnt         string
 	TXAnt         string
+	FiltHigh      float64
+	FiltLow       float64
 }
 
 func (w *WaterfallWidgets) SetSlices(slices map[string]SliceData) {
 	for _, letter := range []string{"A", "B"} {
 		slice := slices[letter]
 		widg := w.Slices[letter]
+		widg.Data = slice
 		if !slice.Present {
 			widg.Container.GetWidget().Visibility = widget.Visibility_Hide_Blocking
 			continue
@@ -168,6 +182,7 @@ func (wf *Waterfall) SetBins(w uint16) {
 	wf.RowBuffer = make([]byte, 4*wf.Bins)
 	if wf.Height != 0 {
 		wf.BackBuffer = ebiten.NewImage(wf.Bins, wf.Height)
+		wf.BackBuffer.Fill(colornames.Black)
 	}
 }
 
@@ -180,6 +195,8 @@ func (wf *Waterfall) AddRow(bins []uint16, blackLevel uint32) {
 	if wf.ScrollPos < 0 {
 		wf.ScrollPos += wf.Height
 	}
+
+	wf.DispLowLatch, wf.DispHighLatch = wf.DispLow, wf.DispHigh
 
 	for n, bin := range bins {
 		scaledBin := (int(bin) - int(blackLevel)) / 64
@@ -194,7 +211,7 @@ func (wf *Waterfall) AddRow(bins []uint16, blackLevel uint32) {
 	wf.BackBuffer.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.ScrollPos+1)).(*ebiten.Image).WritePixels(wf.RowBuffer)
 }
 
-func (wf *Waterfall) Update() {
+func (wf *Waterfall) Update(u *UI) {
 	if wf.Bins == 0 {
 		return
 	}
@@ -206,24 +223,72 @@ func (wf *Waterfall) Update() {
 		wf.Width, wf.Height = width, height
 		wf.Img = ebiten.NewImage(width, height)
 		wf.Widget.Image = wf.Img
+		// TODO: we can copy the old backbuffer into the new one before
+		// destroying it, but we have to take into account `ScrollPos`, not
+		// just copy from the top.
 		wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
+		wf.BackBuffer.Fill(colornames.Black)
 		wf.ScrollPos = height
 	}
 
-	geom := &ebiten.GeoM{}
-	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins), 1)
-	geom.Translate(wf.DataLow-wf.DispLow, 1)
-	geom.Scale(float64(wf.Width)/(wf.DispHigh-wf.DispLow), 1)
+	if wf.DataLow != wf.PrevDataLow || wf.DataHigh != wf.PrevDataHigh {
+		newSpan := wf.DataHigh - wf.DataLow
+		oldSpan := wf.PrevDataHigh - wf.PrevDataLow
+		if math.Abs(newSpan-oldSpan)/(newSpan+oldSpan) > 0.01 {
+			wf.BackBuffer.Fill(colornames.Black)
+		} else {
+			freqShift := wf.PrevDataLow - wf.DataLow
+			binShift := math.Round(freqShift * float64(wf.Bins) / (wf.DataHigh - wf.DataLow))
+			oldBb := wf.BackBuffer
+			geom := ebiten.GeoM{}
+			geom.Translate(binShift, 0)
+			wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
+			wf.BackBuffer.Fill(colornames.Black)
+			wf.BackBuffer.DrawImage(
+				oldBb, &ebiten.DrawImageOptions{GeoM: geom},
+			)
+			oldBb.Deallocate()
+		}
+		wf.PrevDataLow, wf.PrevDataHigh = wf.DataLow, wf.DataHigh
+	}
+
+	geom := ebiten.GeoM{}
+	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins-1), 1)
+	geom.Translate(wf.DataLow-wf.DispLowLatch, 0)
+	geom.Scale(float64(wf.Width-1)/(wf.DispHighLatch-wf.DispLowLatch), 1)
+	// log.Printf("data: (%f - %f) in %d, disp: (%f - %f) in %d, scale: %#v\n", wf.DataLow, wf.DataHigh, wf.Bins, wf.DispLowLatch, wf.DispHighLatch, wf.Width, geom)
+	wf.Widget.Image.Clear()
 	wf.Widget.Image.DrawImage(
 		wf.BackBuffer.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.Height)).(*ebiten.Image),
-		&ebiten.DrawImageOptions{GeoM: *geom, Filter: ebiten.FilterLinear},
+		&ebiten.DrawImageOptions{GeoM: geom, Filter: ebiten.FilterLinear},
 	)
-	if wf.ScrollPos == 0 {
-		return
+	if wf.ScrollPos != 0 {
+		geom.Translate(0, float64(wf.Height-wf.ScrollPos))
+		wf.Widget.Image.DrawImage(
+			wf.BackBuffer.SubImage(image.Rect(0, 0, wf.Bins, wf.ScrollPos)).(*ebiten.Image),
+			&ebiten.DrawImageOptions{GeoM: geom, Filter: ebiten.FilterLinear},
+		)
 	}
-	geom.Translate(0, float64(wf.Height-wf.ScrollPos))
-	wf.Widget.Image.DrawImage(
-		wf.BackBuffer.SubImage(image.Rect(0, 0, wf.Bins, wf.ScrollPos)).(*ebiten.Image),
-		&ebiten.DrawImageOptions{GeoM: *geom, Filter: ebiten.FilterLinear},
-	)
+
+	for _, letter := range []string{"A", "B"} {
+		data := u.Widgets.WaterfallPage.Slices[letter].Data
+		if !data.Present {
+			continue
+		}
+		freq := data.Freq
+		markerPos := float64(wf.Width-1) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+		shadeLeft := float64(wf.Width-1) * (freq + data.FiltLow/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+		shadeRight := float64(wf.Width-1) * (freq + data.FiltHigh/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+
+		wf.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
+			opts.GeoM.Scale(shadeRight-shadeLeft, 1)
+			opts.GeoM.Translate(shadeLeft-1, 0)
+			opts.ColorScale.ScaleAlpha(0.3)
+		})
+
+		wf.SliceMarkImg.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
+			opts.GeoM.Translate(markerPos-1, 0)
+			opts.ColorScale.ScaleAlpha(0.5)
+		})
+	}
 }

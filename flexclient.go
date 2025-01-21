@@ -209,6 +209,8 @@ func (rs *RadioState) updateGUI() {
 		out.Modes = strings.Split(slice["mode_list"], ",")
 		out.RXAnt = slice["rxant"]
 		out.TXAnt = slice["txant"]
+		out.FiltLow, _ = strconv.ParseFloat(slice["filter_lo"], 64)
+		out.FiltHigh, _ = strconv.ParseFloat(slice["filter_hi"], 64)
 		slices[letter] = out
 	}
 	rs.UI.Widgets.WaterfallPage.SetSlices(slices)
@@ -228,7 +230,8 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	if data.Timecode != rs.WFState.timecode {
 		rs.WFState.timecode = data.Timecode
 		rs.WFState.dataLow = float64(data.FrameLowFreq) / 1e6
-		rs.WFState.dataHigh = float64(data.FrameLowFreq+uint64(data.TotalBinsInFrame)*data.BinBandwidth) / 1e6
+		// rs.WFState.dataHigh = float64(data.FrameLowFreq+uint64(data.TotalBinsInFrame)*data.BinBandwidth) / 1e6
+		rs.WFState.dataHigh = rs.WFState.dataLow + (float64(data.TotalBinsInFrame)*float64(data.BinBandwidth))/1e6
 		rs.WFState.binsFilled = 0
 	}
 
