@@ -279,9 +279,10 @@ func (wf *Waterfall) Update(u *UI) {
 	}
 
 	geom := ebiten.GeoM{}
-	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins-1), 1)
+	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins), 1)
 	geom.Translate(wf.DataLow-wf.DispLowLatch, 0)
 	geom.Scale(float64(wf.Width-1)/(wf.DispHighLatch-wf.DispLowLatch), 1)
+
 	// log.Printf("data: (%f - %f) in %d, disp: (%f - %f) in %d, scale: %#v\n", wf.DataLow, wf.DataHigh, wf.Bins, wf.DispLowLatch, wf.DispHighLatch, wf.Width, geom)
 	wf.Widget.Image.Clear()
 	wf.Widget.Image.DrawImage(
@@ -302,18 +303,18 @@ func (wf *Waterfall) Update(u *UI) {
 			continue
 		}
 		freq := data.Freq
-		markerPos := float64(wf.Width-1) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
-		shadeLeft := float64(wf.Width-1) * (freq + data.FiltLow/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
-		shadeRight := float64(wf.Width-1) * (freq + data.FiltHigh/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+		markerPos := float64(wf.Width) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+		shadeLeft := float64(wf.Width) * (freq + data.FiltLow/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+		shadeRight := float64(wf.Width) * (freq + data.FiltHigh/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
 
 		wf.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
 			opts.GeoM.Scale(shadeRight-shadeLeft, 1)
-			opts.GeoM.Translate(shadeLeft-1, 0)
+			opts.GeoM.Translate(shadeLeft, 0)
 			opts.ColorScale.ScaleAlpha(0.3)
 		})
 
 		wf.SliceMarkImg.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
-			opts.GeoM.Translate(markerPos-1, 0)
+			opts.GeoM.Translate(markerPos, 0)
 			opts.ColorScale.ScaleAlpha(0.5)
 		})
 	}

@@ -230,8 +230,9 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	if data.Timecode != rs.WFState.timecode {
 		rs.WFState.timecode = data.Timecode
 		rs.WFState.dataLow = float64(data.FrameLowFreq) / 1e6
-		// rs.WFState.dataHigh = float64(data.FrameLowFreq+uint64(data.TotalBinsInFrame)*data.BinBandwidth) / 1e6
-		rs.WFState.dataHigh = rs.WFState.dataLow + (float64(data.TotalBinsInFrame)*float64(data.BinBandwidth))/1e6
+		// The +1 is very confusing and probably wrong,
+		// and yet it seems to produce a correct result.
+		rs.WFState.dataHigh = float64(data.FrameLowFreq+uint64(data.TotalBinsInFrame)*(data.BinBandwidth+1)) / 1e6
 		rs.WFState.binsFilled = 0
 	}
 
