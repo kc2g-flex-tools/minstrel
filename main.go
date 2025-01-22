@@ -71,6 +71,8 @@ func main() {
 
 	var rs *RadioState
 
+	// TODO: initialize the RadioState before connect, give it control over discovery,
+	// and use RadioShim as the callback mechanism, and delete Callbacks
 	u.Callbacks.Connect = func(dst string) {
 		discoveryCancel()
 		fc, err := flexclient.NewFlexClient(dst)
