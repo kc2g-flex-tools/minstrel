@@ -77,7 +77,6 @@ func NewUI(cfg *Config) *UI {
 			Root: rootContainer,
 		},
 	}
-	u.LoadFonts()
 	u.MakeLayout()
 	u.MakeBottomBar()
 	u.MakeRadiosPage()

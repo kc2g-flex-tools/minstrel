@@ -13,7 +13,7 @@ import (
 
 func (u *UI) MakeButton(fontName string, text string, handler func(*widget.ButtonClickedEventArgs), wopts ...widget.WidgetOpt) *widget.Button {
 	return widget.NewButton(
-		widget.ButtonOpts.Text(text, u.font[fontName], &widget.ButtonTextColor{
+		widget.ButtonOpts.Text(text, u.Font(fontName), &widget.ButtonTextColor{
 			Idle:     colornames.White,
 			Disabled: colornames.Gray,
 			Hover:    colornames.White,
@@ -60,7 +60,7 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(
 		// Hide the horizontal slider
 		widget.ListOpts.HideHorizontalSlider(),
 		// Set the font for the list options
-		widget.ListOpts.EntryFontFace(u.font[fontName]),
+		widget.ListOpts.EntryFontFace(u.Font(fontName)),
 		// Set the colors for the list
 		widget.ListOpts.EntryColor(&widget.ListEntryColor{
 			Selected:           colornames.White,
@@ -84,7 +84,7 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(
 func (u *UI) MakeText(fontName string, fgColor color.Color, opts ...widget.TextOpt) *widget.Text {
 	opts = append(
 		[]widget.TextOpt{
-			widget.TextOpts.Text("", u.font[fontName], fgColor),
+			widget.TextOpts.Text("", u.Font(fontName), fgColor),
 		},
 		opts...,
 	)
@@ -93,7 +93,7 @@ func (u *UI) MakeText(fontName string, fgColor color.Color, opts ...widget.TextO
 
 func (u *UI) MakeTextArea(fontName string, fgColor color.Color, bgColor color.Color) *widget.TextArea {
 	return widget.NewTextArea(
-		widget.TextAreaOpts.FontFace(u.font[fontName]),
+		widget.TextAreaOpts.FontFace(u.Font(fontName)),
 		widget.TextAreaOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.TextAreaOpts.FontColor(fgColor),
 		widget.TextAreaOpts.ScrollContainerOpts(

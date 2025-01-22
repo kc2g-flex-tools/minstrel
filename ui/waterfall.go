@@ -74,7 +74,7 @@ func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
 	)
 	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
 	s.Letter = widget.NewText(
-		widget.TextOpts.Text(letter, u.font["Roboto-48"], colornames.Darkslategray),
+		widget.TextOpts.Text(letter, u.Font("Roboto-48"), colornames.Darkslategray),
 		widget.TextOpts.Insets(widget.Insets{}),
 	)
 	letterContainer.AddChild(s.Letter)
