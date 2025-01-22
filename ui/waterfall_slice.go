@@ -19,6 +19,7 @@ type Slice struct {
 
 type SliceData struct {
 	Present       bool
+	Active        bool
 	Freq          float64
 	FreqFormatted string
 	Mode          string

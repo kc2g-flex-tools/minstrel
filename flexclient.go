@@ -201,7 +201,7 @@ func (rs *RadioState) updateGUI() {
 			continue
 		}
 		letter := slice["index_letter"]
-		out := ui.SliceData{Present: true}
+		out := ui.SliceData{Present: slice["in_use"] != "0"}
 		var err error
 		out.Freq, err = strconv.ParseFloat(slice["RF_frequency"], 64)
 		out.FreqFormatted = formatFreq(out.Freq, err)
@@ -209,6 +209,7 @@ func (rs *RadioState) updateGUI() {
 		out.Modes = strings.Split(slice["mode_list"], ",")
 		out.RXAnt = slice["rxant"]
 		out.TXAnt = slice["txant"]
+		out.Active = slice["active"] != "0"
 		out.FiltLow, _ = strconv.ParseFloat(slice["filter_lo"], 64)
 		out.FiltHigh, _ = strconv.ParseFloat(slice["filter_hi"], 64)
 		slices[letter] = out
