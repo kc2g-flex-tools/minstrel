@@ -252,13 +252,60 @@ func (rs *RadioState) playOpus(pkt flexclient.VitaPacket) {
 	rs.Audio.Decode(data)
 }
 
-func (rs *RadioState) ToggleAudio() {
-	if rs.AudioStream == 0 {
+func (rs *RadioState) ToggleAudio(enable bool) {
+	if enable {
 		rs.FlexClient.SendCmd("stream create type=remote_audio_rx compression=opus")
 		rs.Audio.Player.Play()
 	} else {
 		rs.FlexClient.SendCmd(fmt.Sprintf("stream remove 0x%08x", rs.AudioStream))
 		rs.AudioStream = 0
 		rs.Audio.Player.Pause()
+	}
+}
+
+func (rs *RadioState) getWaterfallAndPan() (flexclient.Object, flexclient.Object) {
+	if rs.WaterfallStream == 0 {
+		return nil, nil
+	}
+	fc := rs.FlexClient
+	wf, ok := fc.GetObject(fmt.Sprintf("display waterfall 0x%08X", rs.WaterfallStream))
+	if !ok {
+		return nil, nil
+	}
+	panId := wf["panadapter"]
+	pan, _ := fc.GetObject(fmt.Sprintf("display pan %s", panId))
+	return wf, pan
+}
+
+func (rs *RadioState) ZoomIn() {
+	wf, pan := rs.getWaterfallAndPan()
+	if wf == nil || pan == nil {
+		return
+	}
+	bw, _ := strconv.ParseFloat(pan["bandwidth"], 64)
+	minBw, _ := strconv.ParseFloat(pan["min_bw"], 64)
+	bw = max(bw/2, minBw)
+	rs.FlexClient.PanSet(wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
+}
+
+func (rs *RadioState) ZoomOut() {
+	wf, pan := rs.getWaterfallAndPan()
+	if wf == nil || pan == nil {
+		return
+	}
+	bw, _ := strconv.ParseFloat(pan["bandwidth"], 64)
+	maxBw, _ := strconv.ParseFloat(pan["max_bw"], 64)
+	bw = min(bw*2, maxBw)
+	rs.FlexClient.PanSet(wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
+}
+
+func (rs *RadioState) FindActiveSlice() {
+	for objName, slice := range rs.FlexClient.FindObjects("slice ") {
+		if slice["active"] == "0" {
+			continue
+		}
+		index := strings.TrimPrefix(objName, "slice ")
+		freq := slice["RF_frequency"]
+		rs.FlexClient.SendCmd(fmt.Sprintf("slice tune %s %s autopan=1", index, freq))
 	}
 }

@@ -16,8 +16,8 @@ func (u *UI) MakeButton(fontName string, text string, handler func(*widget.Butto
 		widget.ButtonOpts.Text(text, u.Font(fontName), &widget.ButtonTextColor{
 			Idle:     colornames.White,
 			Disabled: colornames.Gray,
-			Hover:    colornames.White,
-			Pressed:  colornames.White,
+			Hover:    colornames.Lightskyblue,
+			Pressed:  colornames.Yellow,
 		}),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.Image(&widget.ButtonImage{
@@ -28,6 +28,28 @@ func (u *UI) MakeButton(fontName string, text string, handler func(*widget.Butto
 			Disabled:     image.NewNineSliceColor(colornames.Dimgray),
 		}),
 		widget.ButtonOpts.ClickedHandler(handler),
+		widget.ButtonOpts.WidgetOpts(wopts...),
+	)
+}
+
+func (u *UI) MakeToggleButton(fontName string, text string, handler func(*widget.ButtonChangedEventArgs), wopts ...widget.WidgetOpt) *widget.Button {
+	return widget.NewButton(
+		widget.ButtonOpts.Text(text, u.Font(fontName), &widget.ButtonTextColor{
+			Idle:     colornames.White,
+			Disabled: colornames.Gray,
+			Hover:    colornames.Lightskyblue,
+			Pressed:  colornames.Yellow,
+		}),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.ButtonOpts.Image(&widget.ButtonImage{
+			Idle:         image.NewNineSliceColor(colornames.Dimgray),
+			Hover:        image.NewNineSliceColor(colornames.Dimgray),
+			Pressed:      image.NewNineSliceColor(colornames.Dimgray),
+			PressedHover: image.NewNineSliceColor(colornames.Dimgray),
+			Disabled:     image.NewNineSliceColor(colornames.Dimgray),
+		}),
+		widget.ButtonOpts.ToggleMode(),
+		widget.ButtonOpts.StateChangedHandler(handler),
 		widget.ButtonOpts.WidgetOpts(wopts...),
 	)
 }

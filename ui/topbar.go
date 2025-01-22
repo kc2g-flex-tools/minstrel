@@ -37,8 +37,8 @@ func (u *UI) MakeTopBar() *TopBar {
 		cmd := exec.Command("systemctl", "poweroff")
 		cmd.Run()
 	}, stretch))
-	tb.AudioButton = u.MakeButton("Roboto-24", "Audio", func(args *widget.ButtonClickedEventArgs) {
-		u.RadioShim.ToggleAudio()
+	tb.AudioButton = u.MakeToggleButton("Roboto-24", "Audio", func(args *widget.ButtonChangedEventArgs) {
+		u.RadioShim.ToggleAudio(args.State == widget.WidgetChecked)
 	}, stretch)
 	tb.AudioButton.GetWidget().Visibility = widget.Visibility_Hide
 	tb.Container.AddChild(tb.AudioButton)

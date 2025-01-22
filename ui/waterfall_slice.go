@@ -34,6 +34,12 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	s := &Slice{}
 	s.Container = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4,
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+		)),
+	)
+
+	display := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Padding(widget.Insets{Left: 12, Right: 12, Top: 4, Bottom: 4}),
 		)),
@@ -46,7 +52,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	)
 	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
 	s.Letter = widget.NewText(
-		widget.TextOpts.Text(letter, u.Font("Roboto-48"), colornames.Darkslategray),
+		widget.TextOpts.Text(letter, u.Font("Roboto-36"), colornames.Darkslategray),
 		widget.TextOpts.Insets(widget.Insets{}),
 	)
 	letterContainer.AddChild(s.Letter)
@@ -55,7 +61,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	row1.AddChild(s.RXAnt)
 	s.TXAnt = u.MakeText("Roboto-24", colornames.Red)
 	row1.AddChild(s.TXAnt)
-	s.Container.AddChild(row1)
+	display.AddChild(row1)
 
 	row2 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
@@ -65,8 +71,20 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	)
 	s.Frequency = u.MakeText("Roboto-36", colornames.Seashell)
 	row2.AddChild(s.Frequency)
-	s.Mode = u.MakeText("Roboto-18", colornames.Lightgray)
-	s.Container.AddChild(row2)
+	s.Mode = u.MakeText("Roboto-18", colornames.Lightgray, widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Position: widget.RowLayoutPositionCenter})))
+	row2.AddChild(s.Mode)
+	display.AddChild(row2)
+	s.Container.AddChild(display)
+
+	buttons := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+		)),
+	)
+	buttons.AddChild(u.MakeButton("Icons-16", "\ue5cd", func(*widget.ButtonClickedEventArgs) {}))
+	buttons.AddChild(u.MakeButton("Icons-16", "\ue8b8", func(*widget.ButtonClickedEventArgs) {}))
+	s.Container.AddChild(buttons)
+
 	return s
 }
 
@@ -76,7 +94,7 @@ func (w *WaterfallWidgets) SetSlices(slices map[string]SliceData) {
 		widg := w.Slices[letter]
 		widg.Data = slice
 		if !slice.Present {
-			widg.Container.GetWidget().Visibility = widget.Visibility_Hide_Blocking
+			widg.Container.GetWidget().Visibility = widget.Visibility_Hide
 			continue
 		}
 		widg.Container.GetWidget().Visibility = widget.Visibility_Show

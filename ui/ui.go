@@ -35,7 +35,10 @@ type callbacks struct {
 }
 
 type RadioShim interface {
-	ToggleAudio()
+	ToggleAudio(bool)
+	ZoomIn()
+	ZoomOut()
+	FindActiveSlice()
 }
 
 type UI struct {
@@ -85,6 +88,8 @@ func NewUI(cfg *Config) *UI {
 	ebiten.SetTPS(cfg.FPS)
 	ebiten.SetScreenClearedEveryFrame(false)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.SetWindowSize(720, 480)
+	ebiten.SetWindowSizeLimits(720, 480, -1, -1)
 	ebiten.SetWindowTitle("Minstrel")
 	if cfg.Touch {
 		ebiten.SetCursorMode(ebiten.CursorModeHidden)
@@ -97,7 +102,7 @@ func NewUI(cfg *Config) *UI {
 
 func (u *UI) MakeLayout() {
 	u.Widgets.TopBar = u.MakeTopBar()
-	u.Widgets.MainPage = widget.NewFlipBook()
+	u.Widgets.MainPage = widget.NewFlipBook(widget.FlipBookOpts.Padding(widget.NewInsetsSimple(4)))
 	u.Widgets.BottomBar = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(colornames.Black)),
