@@ -20,7 +20,9 @@ type fontspec struct {
 }
 
 var fontFiles = map[string]fontspec{
-	"Roboto": fontspec{Filename: "Roboto-Medium.ttf", Variations: nil},
+	"Roboto":       fontspec{Filename: "Roboto-Medium.ttf", Variations: nil},
+	"Icons":        fontspec{Filename: "MaterialSymbolsSharp-Regular.ttf", Variations: nil},
+	"Icons-Filled": fontspec{Filename: "MaterialSymbolsSharp_Filled-Regular.ttf", Variations: nil},
 }
 
 var sources = make(map[string]*text.GoTextFaceSource)
