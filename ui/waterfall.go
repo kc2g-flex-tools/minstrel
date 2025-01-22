@@ -20,25 +20,26 @@ type WaterfallWidgets struct {
 }
 
 type Waterfall struct {
-	Widget            *widget.Graphic
-	Img               *ebiten.Image
-	BackBuffer        *ebiten.Image
-	RowBuffer         []byte
-	Width             int
-	Height            int
-	Bins              int
-	ScrollPos         int
-	DispLow           float64
-	DispHigh          float64
-	DispLowLatch      float64
-	DispHighLatch     float64
-	DataLow           float64
-	DataHigh          float64
-	PrevDataLow       float64
-	PrevDataHigh      float64
-	SliceBwImg        *ebimage.NineSlice
-	SliceMarkImg      *ebimage.NineSlice
-	ScrollAccumulator float64
+	Widget               *widget.Graphic
+	Img                  *ebiten.Image
+	BackBuffer           *ebiten.Image
+	RowBuffer            []byte
+	Width                int
+	Height               int
+	Bins                 int
+	ScrollPos            int
+	DispLow              float64
+	DispHigh             float64
+	DispLowLatch         float64
+	DispHighLatch        float64
+	DataLow              float64
+	DataHigh             float64
+	PrevDataLow          float64
+	PrevDataHigh         float64
+	SliceBwImg           *ebimage.NineSlice
+	ActiveSliceMarkImg   *ebimage.NineSlice
+	InactiveSliceMarkImg *ebimage.NineSlice
+	ScrollAccumulator    float64
 }
 
 func (u *UI) MakeWaterfallPage() {
@@ -84,7 +85,8 @@ func (u *UI) MakeWaterfallPage() {
 	wf.Waterfall = u.MakeWaterfall()
 	wf.Container.AddChild(wf.Waterfall.Widget)
 	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
-	wf.Waterfall.SliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
+	wf.Waterfall.ActiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
+	wf.Waterfall.InactiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Red)
 	u.Widgets.WaterfallPage = wf
 }
 
@@ -236,7 +238,11 @@ func (wf *Waterfall) drawSliceMarker(data SliceData) {
 		opts.ColorScale.ScaleAlpha(0.3)
 	})
 
-	wf.SliceMarkImg.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
+	mark := wf.InactiveSliceMarkImg
+	if data.Active {
+		mark = wf.ActiveSliceMarkImg
+	}
+	mark.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
 		opts.GeoM.Translate(markerPos, 0)
 		opts.ColorScale.ScaleAlpha(0.5)
 	})
