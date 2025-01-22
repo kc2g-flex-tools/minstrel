@@ -17,6 +17,7 @@ type WaterfallWidgets struct {
 	SliceArea *widget.Container
 	Slices    map[string]*Slice
 	Waterfall *Waterfall
+	Controls  *WaterfallControls
 }
 
 type Slice struct {
@@ -51,20 +52,13 @@ type Waterfall struct {
 	ScrollAccumulator float64
 }
 
-func (u *UI) MakeSlice(letter string, pos widget.AnchorLayoutPosition) *Slice {
+func (u *UI) MakeSlice(letter string) *Slice {
 	s := &Slice{}
 	s.Container = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4,
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 			widget.RowLayoutOpts.Padding(widget.Insets{Left: 12, Right: 12, Top: 4, Bottom: 4}),
 		)),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(
-				widget.AnchorLayoutData{
-					VerticalPosition:   widget.AnchorLayoutPositionStart,
-					HorizontalPosition: pos,
-				},
-			)),
 	)
 	row1 := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
@@ -117,14 +111,26 @@ func (u *UI) MakeWaterfallPage() {
 		),
 	)
 	wf.SliceArea = widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(3),
+			widget.GridLayoutOpts.Stretch([]bool{false, true, false}, []bool{true}),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(4)),
+			widget.GridLayoutOpts.Spacing(8, 0),
+		)),
 	)
 	wf.Slices = map[string]*Slice{
-		"A": u.MakeSlice("A", widget.AnchorLayoutPositionStart),
-		"B": u.MakeSlice("B", widget.AnchorLayoutPositionEnd),
+		"A": u.MakeSlice("A"),
+		"B": u.MakeSlice("B"),
 	}
-	wf.SliceArea.AddChild(wf.Slices["A"].Container)
-	wf.SliceArea.AddChild(wf.Slices["B"].Container)
+
+	wf.Controls = u.MakeWaterfallControls()
+
+	wf.SliceArea.AddChild(
+		wf.Slices["A"].Container,
+		wf.Controls.Container,
+		wf.Slices["B"].Container,
+	)
+
 	wf.Container.AddChild(wf.SliceArea)
 	wf.Waterfall = u.MakeWaterfall()
 	wf.Container.AddChild(wf.Waterfall.Widget)
@@ -318,4 +324,25 @@ func (wf *Waterfall) Update(u *UI) {
 			opts.ColorScale.ScaleAlpha(0.5)
 		})
 	}
+}
+
+type WaterfallControls struct {
+	Container *widget.Container
+}
+
+func (u *UI) MakeWaterfallControls() *WaterfallControls {
+	wfc := &WaterfallControls{}
+	wfc.Container = widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		// widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(colornames.Pink)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(
+				widget.RowLayoutData{
+					Position: widget.RowLayoutPositionCenter,
+					Stretch:  true,
+				},
+			),
+		),
+	)
+	return wfc
 }
