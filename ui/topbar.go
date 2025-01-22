@@ -28,22 +28,18 @@ func (u *UI) MakeTopBar() *TopBar {
 			}),
 		),
 	)
+
+	stretch := widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true})
 	tb.Container.AddChild(u.MakeButton("Roboto-24", "Exit", func(args *widget.ButtonClickedEventArgs) {
 		u.exit = true
-	}, widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-		Stretch: true,
-	})))
+	}, stretch))
 	tb.Container.AddChild(u.MakeButton("Roboto-24", "Shutdown", func(args *widget.ButtonClickedEventArgs) {
 		cmd := exec.Command("systemctl", "poweroff")
 		cmd.Run()
-	}, widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-		Stretch: true,
-	})))
+	}, stretch))
 	tb.AudioButton = u.MakeButton("Roboto-24", "Audio", func(args *widget.ButtonClickedEventArgs) {
 		u.RadioShim.ToggleAudio()
-	}, widget.WidgetOpts.LayoutData(widget.RowLayoutData{
-		Stretch: true,
-	}))
+	}, stretch)
 	tb.AudioButton.GetWidget().Visibility = widget.Visibility_Hide
 	tb.Container.AddChild(tb.AudioButton)
 	return tb
