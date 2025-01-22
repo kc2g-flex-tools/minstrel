@@ -142,8 +142,12 @@ func (rs *RadioState) Run() {
 				if err != nil {
 					log.Println(err)
 				} else {
-					log.Println("my waterfall is", streamStr)
-					rs.WaterfallStream = uint32(streamId)
+					if rs.WaterfallStream == 0 {
+						log.Println("my waterfall is", streamStr)
+						rs.WaterfallStream = uint32(streamId)
+						wf, _ := rs.getWaterfallAndPan()
+						fc.PanSet(wf["panadapter"], flexclient.Object{"xpixels": "1000"})
+					}
 					center, _ := strconv.ParseFloat(st.CurrentState["center"], 64)
 					span, _ := strconv.ParseFloat(st.CurrentState["bandwidth"], 64)
 					rs.UI.Widgets.WaterfallPage.Waterfall.DispLow = center - span/2
