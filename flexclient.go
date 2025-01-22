@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -58,6 +59,7 @@ type WFState struct {
 }
 
 type RadioState struct {
+	mu              sync.RWMutex
 	FlexClient      *flexclient.FlexClient
 	UI              *ui.UI
 	Audio           *audio.Audio
@@ -65,6 +67,7 @@ type RadioState struct {
 	WaterfallStream uint32
 	AudioStream     uint32
 	WFState         WFState
+	Slices          map[string]ui.SliceData
 }
 
 func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio) *RadioState {
@@ -214,7 +217,9 @@ func (rs *RadioState) updateGUI() {
 		out.FiltHigh, _ = strconv.ParseFloat(slice["filter_hi"], 64)
 		slices[letter] = out
 	}
-	rs.UI.Widgets.WaterfallPage.SetSlices(slices)
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	rs.Slices = slices
 }
 
 func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
@@ -261,6 +266,12 @@ func (rs *RadioState) ToggleAudio(enable bool) {
 		rs.AudioStream = 0
 		rs.Audio.Player.Pause()
 	}
+}
+
+func (rs *RadioState) GetSlices() map[string]ui.SliceData {
+	rs.mu.RLock()
+	defer rs.mu.RUnlock()
+	return rs.Slices
 }
 
 func (rs *RadioState) getWaterfallAndPan() (flexclient.Object, flexclient.Object) {

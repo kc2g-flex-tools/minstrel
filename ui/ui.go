@@ -39,6 +39,7 @@ type RadioShim interface {
 	ZoomIn()
 	ZoomOut()
 	FindActiveSlice()
+	GetSlices() map[string]SliceData
 }
 
 type UI struct {
@@ -126,7 +127,7 @@ func (u *UI) Update() error {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 	if u.state == MainState {
-		u.Widgets.WaterfallPage.Waterfall.Update(u)
+		u.Widgets.WaterfallPage.Update(u)
 	}
 	u.eui.Update()
 	u.update = true

@@ -95,6 +95,11 @@ func (u *UI) ShowWaterfall() {
 	u.state = MainState
 }
 
+func (wf *WaterfallWidgets) Update(u *UI) {
+	wf.UpdateSlices(u)
+	wf.Waterfall.Update(u)
+}
+
 func (u *UI) MakeWaterfall() *Waterfall {
 	wf := &Waterfall{
 		Widget: widget.NewGraphic(),

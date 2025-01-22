@@ -88,7 +88,8 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	return s
 }
 
-func (w *WaterfallWidgets) SetSlices(slices map[string]SliceData) {
+func (w *WaterfallWidgets) UpdateSlices(u *UI) {
+	slices := u.RadioShim.GetSlices()
 	for _, letter := range []string{"A", "B"} {
 		slice := slices[letter]
 		widg := w.Slices[letter]
