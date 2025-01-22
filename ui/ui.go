@@ -78,7 +78,6 @@ func NewUI(cfg *Config) *UI {
 		},
 	}
 	u.MakeLayout()
-	u.MakeBottomBar()
 	u.MakeRadiosPage()
 	u.MakeWaterfallPage()
 	u.Widgets.MainPage.SetPage(u.Widgets.Radios)
@@ -112,7 +111,6 @@ func (u *UI) MakeLayout() {
 	)
 	u.Widgets.Root.AddChild(u.Widgets.TopBar.Container)
 	u.Widgets.Root.AddChild(u.Widgets.MainPage)
-	u.Widgets.Root.AddChild(u.Widgets.BottomBar)
 }
 
 func (u *UI) Update() error {
