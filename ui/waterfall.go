@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/color"
 	"log"
 	"math"
 
@@ -18,16 +17,6 @@ type WaterfallWidgets struct {
 	Slices    map[string]*Slice
 	Waterfall *Waterfall
 	Controls  *WaterfallControls
-}
-
-type Slice struct {
-	Container *widget.Container
-	Letter    *widget.Text
-	Frequency *widget.Text
-	RXAnt     *widget.Text
-	TXAnt     *widget.Text
-	Mode      *widget.Text
-	Data      SliceData
 }
 
 type Waterfall struct {
@@ -50,46 +39,6 @@ type Waterfall struct {
 	SliceBwImg        *ebimage.NineSlice
 	SliceMarkImg      *ebimage.NineSlice
 	ScrollAccumulator float64
-}
-
-func (u *UI) MakeSlice(letter string) *Slice {
-	s := &Slice{}
-	s.Container = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4,
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(widget.Insets{Left: 12, Right: 12, Top: 4, Bottom: 4}),
-		)),
-	)
-	row1 := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Spacing(8),
-		)),
-	)
-	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
-	s.Letter = widget.NewText(
-		widget.TextOpts.Text(letter, u.Font("Roboto-48"), colornames.Darkslategray),
-		widget.TextOpts.Insets(widget.Insets{}),
-	)
-	letterContainer.AddChild(s.Letter)
-	row1.AddChild(letterContainer)
-	s.RXAnt = u.MakeText("Roboto-24", colornames.Deepskyblue)
-	row1.AddChild(s.RXAnt)
-	s.TXAnt = u.MakeText("Roboto-24", colornames.Red)
-	row1.AddChild(s.TXAnt)
-	s.Container.AddChild(row1)
-
-	row2 := widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewRowLayout(
-			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
-			widget.RowLayoutOpts.Spacing(4),
-		)),
-	)
-	s.Frequency = u.MakeText("Roboto-36", colornames.Seashell)
-	row2.AddChild(s.Frequency)
-	s.Mode = u.MakeText("Roboto-18", colornames.Lightgray)
-	s.Container.AddChild(row2)
-	return s
 }
 
 func (u *UI) MakeWaterfallPage() {
@@ -145,35 +94,6 @@ func (u *UI) ShowWaterfall() {
 	u.state = MainState
 }
 
-type SliceData struct {
-	Present       bool
-	Freq          float64
-	FreqFormatted string
-	Mode          string
-	Modes         []string
-	RXAnt         string
-	TXAnt         string
-	FiltHigh      float64
-	FiltLow       float64
-}
-
-func (w *WaterfallWidgets) SetSlices(slices map[string]SliceData) {
-	for _, letter := range []string{"A", "B"} {
-		slice := slices[letter]
-		widg := w.Slices[letter]
-		widg.Data = slice
-		if !slice.Present {
-			widg.Container.GetWidget().Visibility = widget.Visibility_Hide_Blocking
-			continue
-		}
-		widg.Container.GetWidget().Visibility = widget.Visibility_Show
-		widg.Frequency.Label = slice.FreqFormatted
-		widg.Mode.Label = slice.Mode
-		widg.RXAnt.Label = slice.RXAnt
-		widg.TXAnt.Label = slice.TXAnt
-	}
-}
-
 func (u *UI) MakeWaterfall() *Waterfall {
 	wf := &Waterfall{
 		Widget: widget.NewGraphic(),
@@ -221,11 +141,7 @@ func (wf *Waterfall) AddRow(bins []uint16, blackLevel uint32) {
 	wf.BackBuffer.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.ScrollPos+1)).(*ebiten.Image).WritePixels(wf.RowBuffer)
 }
 
-func (wf *Waterfall) Update(u *UI) {
-	if wf.Bins == 0 {
-		return
-	}
-
+func (wf *Waterfall) updateSize() {
 	rect := wf.Widget.GetWidget().Rect
 	width, height := rect.Dx(), rect.Dy()
 	if wf.Width != width || wf.Height != height {
@@ -258,7 +174,9 @@ func (wf *Waterfall) Update(u *UI) {
 		wf.Img = ebiten.NewImage(width, height)
 		wf.Widget.Image = wf.Img
 	}
+}
 
+func (wf *Waterfall) handleFreqScroll() {
 	if wf.DataLow != wf.PrevDataLow || wf.DataHigh != wf.PrevDataHigh {
 		newSpan := wf.DataHigh - wf.DataLow
 		oldSpan := wf.PrevDataHigh - wf.PrevDataLow
@@ -273,7 +191,7 @@ func (wf *Waterfall) Update(u *UI) {
 				oldBb := wf.BackBuffer
 				geom := ebiten.GeoM{}
 				geom.Translate(binShift, 0)
-				wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
+				wf.BackBuffer = ebiten.NewImage(wf.Bins, wf.Height)
 				wf.BackBuffer.Fill(colornames.Black)
 				wf.BackBuffer.DrawImage(
 					oldBb, &ebiten.DrawImageOptions{GeoM: geom},
@@ -283,7 +201,9 @@ func (wf *Waterfall) Update(u *UI) {
 		}
 		wf.PrevDataLow, wf.PrevDataHigh = wf.DataLow, wf.DataHigh
 	}
+}
 
+func (wf *Waterfall) drawWaterfall() {
 	geom := ebiten.GeoM{}
 	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins), 1)
 	geom.Translate(wf.DataLow-wf.DispLowLatch, 0)
@@ -302,47 +222,39 @@ func (wf *Waterfall) Update(u *UI) {
 			&ebiten.DrawImageOptions{GeoM: geom, Filter: ebiten.FilterLinear},
 		)
 	}
+}
+
+func (wf *Waterfall) drawSliceMarker(data SliceData) {
+	freq := data.Freq
+	markerPos := float64(wf.Width) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+	shadeLeft := float64(wf.Width) * (freq + data.FiltLow/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+	shadeRight := float64(wf.Width) * (freq + data.FiltHigh/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+
+	wf.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
+		opts.GeoM.Scale(shadeRight-shadeLeft, 1)
+		opts.GeoM.Translate(shadeLeft, 0)
+		opts.ColorScale.ScaleAlpha(0.3)
+	})
+
+	wf.SliceMarkImg.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
+		opts.GeoM.Translate(markerPos, 0)
+		opts.ColorScale.ScaleAlpha(0.5)
+	})
+}
+
+func (wf *Waterfall) Update(u *UI) {
+	if wf.Bins == 0 {
+		return
+	}
+
+	wf.updateSize()
+	wf.handleFreqScroll()
+	wf.drawWaterfall()
 
 	for _, letter := range []string{"A", "B"} {
 		data := u.Widgets.WaterfallPage.Slices[letter].Data
-		if !data.Present {
-			continue
+		if data.Present {
+			wf.drawSliceMarker(data)
 		}
-		freq := data.Freq
-		markerPos := float64(wf.Width) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
-		shadeLeft := float64(wf.Width) * (freq + data.FiltLow/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
-		shadeRight := float64(wf.Width) * (freq + data.FiltHigh/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
-
-		wf.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
-			opts.GeoM.Scale(shadeRight-shadeLeft, 1)
-			opts.GeoM.Translate(shadeLeft, 0)
-			opts.ColorScale.ScaleAlpha(0.3)
-		})
-
-		wf.SliceMarkImg.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
-			opts.GeoM.Translate(markerPos, 0)
-			opts.ColorScale.ScaleAlpha(0.5)
-		})
 	}
-}
-
-type WaterfallControls struct {
-	Container *widget.Container
-}
-
-func (u *UI) MakeWaterfallControls() *WaterfallControls {
-	wfc := &WaterfallControls{}
-	wfc.Container = widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-		// widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(colornames.Pink)),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(
-				widget.RowLayoutData{
-					Position: widget.RowLayoutPositionCenter,
-					Stretch:  true,
-				},
-			),
-		),
-	)
-	return wfc
 }
