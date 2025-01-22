@@ -2,12 +2,12 @@ package ui
 
 import (
 	"fmt"
+	"os/exec"
 
 	"github.com/ebitenui/ebitenui/widget"
 )
 
 type radioProps = map[string]string
-type placeHolder string
 
 func (u *UI) MakeRadiosPage() {
 	u.Widgets.Radios = u.MakeList(
@@ -33,7 +33,14 @@ func (u *UI) MakeRadiosPage() {
 				radio := *entry
 				cb(radio["ip"] + ":" + radio["port"])
 			case string:
-				fmt.Printf("not supported yet\n")
+				switch entry {
+				case "Exit":
+					u.exit = true
+				case "Shutdown":
+					exec.Command("systemctl", "poweroff").Run()
+				default:
+					fmt.Printf("not supported yet\n")
+				}
 			default:
 				fmt.Printf("huh?\n")
 			}
@@ -49,6 +56,6 @@ func (u *UI) SetRadios(radios []radioProps) {
 	for i := range radios {
 		entries[i] = &radios[i]
 	}
-	entries = append(entries, "Enter IP address...")
+	entries = append(entries, "Enter IP address...", "Exit", "Shutdown")
 	u.Widgets.Radios.SetEntries(entries)
 }

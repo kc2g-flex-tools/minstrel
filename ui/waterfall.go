@@ -91,7 +91,6 @@ func (u *UI) MakeWaterfallPage() {
 
 func (u *UI) ShowWaterfall() {
 	u.Widgets.MainPage.SetPage(u.Widgets.WaterfallPage.Container)
-	u.Widgets.TopBar.AudioButton.GetWidget().Visibility = widget.Visibility_Show
 	u.state = MainState
 }
 

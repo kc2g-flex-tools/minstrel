@@ -1,9 +1,16 @@
 package ui
 
-import "github.com/ebitenui/ebitenui/widget"
+import (
+	"os/exec"
+
+	"github.com/ebitenui/ebitenui/widget"
+)
 
 type WaterfallControls struct {
 	Container *widget.Container
+	Exit      *widget.Button
+	Shutdown  *widget.Button
+	Audio     *widget.Button
 	ZoomOut   *widget.Button
 	ZoomIn    *widget.Button
 	Find      *widget.Button
@@ -27,6 +34,15 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 			),
 		),
 	)
+	wfc.Exit = u.MakeButton("Icons-32", "\ue9ba", func(args *widget.ButtonClickedEventArgs) {
+		u.exit = true
+	})
+	wfc.Shutdown = u.MakeButton("Icons-32", "\ue8ac", func(args *widget.ButtonClickedEventArgs) {
+		exec.Command("systemctl", "poweroff").Run()
+	})
+	wfc.Audio = u.MakeToggleButton("Icons-32", "\ue050", func(args *widget.ButtonChangedEventArgs) {
+		u.RadioShim.ToggleAudio(args.State == widget.WidgetChecked)
+	})
 	wfc.ZoomOut = u.MakeButton("Icons-32", "\ue900", func(args *widget.ButtonClickedEventArgs) {
 		u.RadioShim.ZoomOut()
 	})
@@ -38,12 +54,16 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 	})
 
 	wfc.Container.AddChild(
+		wfc.Exit,
+		wfc.Shutdown,
+		wfc.Audio,
+		widget.NewContainer(),
 		wfc.ZoomOut,
 		wfc.ZoomIn,
 		wfc.Find,
 	)
 
-	for _, letter := range []string{"D", "E", "F", "G", "H"} {
+	for _, letter := range []string{"H"} {
 		wfc.Container.AddChild(
 			u.MakeButton("Icons-32", letter, func(args *widget.ButtonClickedEventArgs) {}),
 		)

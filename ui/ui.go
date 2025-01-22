@@ -11,7 +11,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
-	"golang.org/x/image/colornames"
 )
 
 type State int
@@ -24,9 +23,7 @@ const (
 type widgets struct {
 	Root          *widget.Container
 	Radios        *widget.List
-	TopBar        *TopBar
 	MainPage      *widget.FlipBook
-	BottomBar     *widget.Container
 	WaterfallPage *WaterfallWidgets
 }
 
@@ -68,7 +65,7 @@ func NewUI(cfg *Config) *UI {
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{0x12, 0x23, 0x34, 0xff})),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false}),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true}),
 		)),
 	)
 
@@ -102,20 +99,7 @@ func NewUI(cfg *Config) *UI {
 }
 
 func (u *UI) MakeLayout() {
-	u.Widgets.TopBar = u.MakeTopBar()
 	u.Widgets.MainPage = widget.NewFlipBook(widget.FlipBookOpts.Padding(widget.NewInsetsSimple(4)))
-	u.Widgets.BottomBar = widget.NewContainer(
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(colornames.Black)),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.MinSize(0, 24),
-			widget.WidgetOpts.LayoutData(widget.GridLayoutData{
-				HorizontalPosition: widget.GridLayoutPositionCenter,
-				VerticalPosition:   widget.GridLayoutPositionEnd,
-			}),
-		),
-	)
-	u.Widgets.Root.AddChild(u.Widgets.TopBar.Container)
 	u.Widgets.Root.AddChild(u.Widgets.MainPage)
 }
 
