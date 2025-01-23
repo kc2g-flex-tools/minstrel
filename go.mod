@@ -1,6 +1,6 @@
 module github.com/kc2g-flex-tools/minstrel
 
-go 1.23
+go 1.23.5
 
 require (
 	github.com/adrg/xdg v0.5.3
