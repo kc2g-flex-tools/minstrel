@@ -27,6 +27,8 @@ github.com/hb9fxq/flexlib-go v0.0.0-20201128184122-8acafd8a4e14 h1:FZkuXZqagN8FH
 github.com/hb9fxq/flexlib-go v0.0.0-20201128184122-8acafd8a4e14/go.mod h1:iB83MZ+GbY0Z/Cdf38tJPLF/OG9sPbLTtuknBuMOfQw=
 github.com/jezek/xgb v1.1.1 h1:bE/r8ZZtSv7l9gk6nU0mYx51aXrvnyb44892TwSaqS4=
 github.com/jezek/xgb v1.1.1/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
+github.com/jfreymuth/pulse v0.1.1 h1:9WLNBNCijmtZ14ZJpatgJPu/NjwAl3TIKItSFnTh+9A=
+github.com/jfreymuth/pulse v0.1.1/go.mod h1:cpYspI6YljhkUf1WLXLLDmeaaPFc3CnGLjDZf9dZ4no=
 github.com/kc2g-flex-tools/flexclient v0.5.1 h1:VLHrB0G9BsaEEvAKn6eDpM0DU2p5BnxRefvdz0P81t4=
 github.com/kc2g-flex-tools/flexclient v0.5.1/go.mod h1:zVHZbwOlIhb9/C5U/ulQzDxnVzqyY7gAjnjHz1g4Sa4=
 github.com/matryer/is v1.4.1 h1:55ehd8zaGABKLXQUe2awZ99BD/PTc2ls+KV/dXphgEQ=
