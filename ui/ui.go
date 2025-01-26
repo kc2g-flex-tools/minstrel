@@ -52,6 +52,7 @@ type UI struct {
 	Widgets   widgets
 	Callbacks callbacks
 	RadioShim RadioShim
+	deferred  []func()
 }
 
 type Config struct {
@@ -113,9 +114,19 @@ func (u *UI) Update() error {
 	if u.state == MainState {
 		u.Widgets.WaterfallPage.Update(u)
 	}
+	u.runDeferred()
 	u.eui.Update()
 	u.update = true
 	return nil
+}
+
+func (u *UI) runDeferred() {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	for _, cb := range u.deferred {
+		cb()
+	}
+	u.deferred = nil
 }
 
 func (u *UI) Draw(screen *ebiten.Image) {
@@ -135,4 +146,10 @@ func (u *UI) Layout(width, height int) (int, int) {
 		log.Printf("layout %d x %d", width, height)
 	}
 	return width, height
+}
+
+func (u *UI) Defer(cb func()) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.deferred = append(u.deferred, cb)
 }

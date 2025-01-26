@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/image/colornames"
 
-	"github.com/ebitenui/ebitenui/image"
+	ebimage "github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -21,11 +21,11 @@ func (u *UI) MakeButton(fontName string, text string, handler func(*widget.Butto
 		}),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:         image.NewNineSliceColor(colornames.Dimgray),
-			Hover:        image.NewNineSliceColor(colornames.Dimgray),
-			Pressed:      image.NewNineSliceColor(colornames.Dimgray),
-			PressedHover: image.NewNineSliceColor(colornames.Dimgray),
-			Disabled:     image.NewNineSliceColor(colornames.Dimgray),
+			Idle:         ebimage.NewNineSliceColor(colornames.Dimgray),
+			Hover:        ebimage.NewNineSliceColor(colornames.Dimgray),
+			Pressed:      ebimage.NewNineSliceColor(colornames.Dimgray),
+			PressedHover: ebimage.NewNineSliceColor(colornames.Dimgray),
+			Disabled:     ebimage.NewNineSliceColor(colornames.Dimgray),
 		}),
 		widget.ButtonOpts.ClickedHandler(handler),
 		widget.ButtonOpts.WidgetOpts(wopts...),
@@ -42,11 +42,11 @@ func (u *UI) MakeToggleButton(fontName string, text string, handler func(*widget
 		}),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.Image(&widget.ButtonImage{
-			Idle:         image.NewNineSliceColor(colornames.Dimgray),
-			Hover:        image.NewNineSliceColor(colornames.Dimgray),
-			Pressed:      image.NewNineSliceColor(colornames.Dimgray),
-			PressedHover: image.NewNineSliceColor(colornames.Dimgray),
-			Disabled:     image.NewNineSliceColor(colornames.Dimgray),
+			Idle:         ebimage.NewNineSliceColor(colornames.Dimgray),
+			Hover:        ebimage.NewNineSliceColor(colornames.Dimgray),
+			Pressed:      ebimage.NewNineSliceColor(colornames.Dimgray),
+			PressedHover: ebimage.NewNineSliceColor(colornames.Dimgray),
+			Disabled:     ebimage.NewNineSliceColor(colornames.Dimgray),
 		}),
 		widget.ButtonOpts.ToggleMode(),
 		widget.ButtonOpts.StateChangedHandler(handler),
@@ -65,16 +65,16 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(
 		)),
 		widget.ListOpts.ScrollContainerOpts(
 			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
-				Idle:     image.NewNineSliceColor(colornames.Dimgray),
-				Disabled: image.NewNineSliceColor(colornames.Dimgray),
-				Mask:     image.NewNineSliceColor(colornames.Dimgray),
+				Idle:     ebimage.NewNineSliceColor(colornames.Dimgray),
+				Disabled: ebimage.NewNineSliceColor(colornames.Dimgray),
+				Mask:     ebimage.NewNineSliceColor(colornames.Dimgray),
 			}),
 		),
 		widget.ListOpts.SliderOpts(
 			// Set the background images/color for the background of the slider track
 			widget.SliderOpts.Images(&widget.SliderTrackImage{
-				Idle:  image.NewNineSliceColor(colornames.Dimgray),
-				Hover: image.NewNineSliceColor(colornames.Dimgray),
+				Idle:  ebimage.NewNineSliceColor(colornames.Dimgray),
+				Hover: ebimage.NewNineSliceColor(colornames.Dimgray),
 			}, sliderImage()),
 			widget.SliderOpts.MinHandleSize(5),
 			// Set how wide the track should be
@@ -120,8 +120,8 @@ func (u *UI) MakeTextArea(fontName string, fgColor color.Color, bgColor color.Co
 		widget.TextAreaOpts.FontColor(fgColor),
 		widget.TextAreaOpts.ScrollContainerOpts(
 			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
-				Idle: image.NewNineSliceColor(bgColor),
-				Mask: image.NewNineSliceColor(bgColor),
+				Idle: ebimage.NewNineSliceColor(bgColor),
+				Mask: ebimage.NewNineSliceColor(bgColor),
 			}),
 		),
 		widget.TextAreaOpts.SliderOpts(
@@ -138,7 +138,7 @@ func (u *UI) MakeRoundedRect(fg color.Color, bg color.Color, radius int, opts ..
 	r := float32(radius)
 	img.Fill(bg)
 	vector.DrawFilledCircle(img, r, r, r, fg, true)
-	nineslice := image.NewNineSliceSimple(img, radius, 1)
+	nineslice := ebimage.NewNineSliceSimple(img, radius, 1)
 	opts = append([]widget.ContainerOpt{
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
 			widget.AnchorLayoutOpts.Padding(widget.Insets{
@@ -156,8 +156,15 @@ func (u *UI) MakeRoundedRect(fg color.Color, bg color.Color, radius int, opts ..
 
 func sliderImage() *widget.ButtonImage {
 	return &widget.ButtonImage{
-		Idle:    image.NewNineSliceColor(colornames.Lightgray),
-		Hover:   image.NewNineSliceColor(colornames.Seashell),
-		Pressed: image.NewNineSliceColor(colornames.Seashell),
+		Idle:    ebimage.NewNineSliceColor(colornames.Lightgray),
+		Hover:   ebimage.NewNineSliceColor(colornames.Seashell),
+		Pressed: ebimage.NewNineSliceColor(colornames.Seashell),
 	}
+}
+
+func NewNineSliceBorder(innerColor, borderColor color.Color, borderWidthHeight int) *ebimage.NineSlice {
+	i := ebiten.NewImage(2*borderWidthHeight+1, 2*borderWidthHeight+1)
+	i.Fill(borderColor)
+	i.Set(borderWidthHeight, borderWidthHeight, innerColor)
+	return ebimage.NewNineSliceSimple(i, borderWidthHeight, 1)
 }
