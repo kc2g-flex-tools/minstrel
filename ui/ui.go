@@ -38,6 +38,7 @@ type RadioShim interface {
 	FindActiveSlice()
 	GetSlices() map[string]SliceData
 	TuneSlice(int, float64)
+	SetSliceMode(int, string)
 	CenterWaterfallAt(float64)
 	ActivateSlice(int)
 }

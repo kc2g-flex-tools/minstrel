@@ -117,6 +117,53 @@ func (u *UI) MakeEntryWindow(title, titleFont, prompt, mainFont string, cb func(
 	return window
 }
 
+func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []any, labeler func(any) string, cb func(any, bool)) *Window {
+	var window *Window
+
+	contents := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(16),
+		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchVertical:   true,
+			StretchHorizontal: true,
+		})),
+	)
+	if prompt != "" {
+		contents.AddChild(widget.NewText(
+			widget.TextOpts.Text(prompt, u.Font(mainFont), color.NRGBA{0xee, 0xee, 0xee, 0xff}),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}))))
+	}
+
+	list := u.MakeList(mainFont, labeler, func(args *widget.ListEntrySelectedEventArgs) {
+		cb(args.Entry, true)
+		window.widget.Close()
+	})
+	for _, item := range items {
+		list.AddEntry(item)
+	}
+
+	contents.AddChild(list)
+	buttonRow := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(8),
+		)),
+	)
+	buttonRow.AddChild(
+		u.MakeButton(mainFont, "Cancel", func(_ *widget.ButtonClickedEventArgs) {
+			cb(nil, false)
+			window.widget.Close()
+		}),
+	)
+	contents.AddChild(buttonRow)
+	window = u.MakeWindow(title, titleFont, contents)
+	return window
+}
+
 func (u *UI) ShowWindow(window *Window) {
 	win := window.widget
 	x, y := win.Contents.PreferredSize()

@@ -334,6 +334,10 @@ func (rs *RadioState) TuneSlice(index int, freq float64) {
 	rs.FlexClient.SliceTune(fmt.Sprintf("%d", index), freq)
 }
 
+func (rs *RadioState) SetSliceMode(index int, mode string) {
+	rs.FlexClient.SliceSet(fmt.Sprintf("%d", index), flexclient.Object{"mode": mode})
+}
+
 func (rs *RadioState) CenterWaterfallAt(freq float64) {
 	wf, pan := rs.getWaterfallAndPan()
 	if wf == nil || pan == nil {

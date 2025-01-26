@@ -84,6 +84,22 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	})
 	row2.AddChild(s.Frequency)
 	s.Mode = u.MakeText("Roboto-16", colornames.Lightgray, widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Position: widget.RowLayoutPositionCenter})))
+	s.Mode.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
+		var modes []any
+		for _, mode := range s.Data.Modes {
+			modes = append(modes, mode)
+		}
+		u.ShowWindow(
+			u.MakeListWindow(
+				"Select mode", "Roboto-16", "", "Roboto-16",
+				modes, func(m any) string { return m.(string) },
+				func(item any, ok bool) {
+					if ok {
+						u.RadioShim.SetSliceMode(s.Data.Index, item.(string))
+					}
+				},
+			))
+	})
 	row2.AddChild(s.Mode)
 	display.AddChild(row2)
 	s.Container.AddChild(display)
