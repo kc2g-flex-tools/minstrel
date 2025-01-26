@@ -37,6 +37,9 @@ type RadioShim interface {
 	ZoomOut()
 	FindActiveSlice()
 	GetSlices() map[string]SliceData
+	TuneSlice(int, float64)
+	CenterWaterfallAt(float64)
+	ActivateSlice(int)
 }
 
 type UI struct {

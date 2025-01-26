@@ -203,7 +203,7 @@ func formatFreq(fFloat float64, err error) string {
 
 func (rs *RadioState) updateGUI() {
 	slices := map[string]ui.SliceData{}
-	for _, slice := range rs.FlexClient.FindObjects("slice ") {
+	for objName, slice := range rs.FlexClient.FindObjects("slice ") {
 		if slice["client_handle"] != rs.ClientID {
 			continue
 		}
@@ -219,6 +219,7 @@ func (rs *RadioState) updateGUI() {
 		out.Active = slice["active"] != "0"
 		out.FiltLow, _ = strconv.ParseFloat(slice["filter_lo"], 64)
 		out.FiltHigh, _ = strconv.ParseFloat(slice["filter_hi"], 64)
+		out.Index, _ = strconv.Atoi(strings.TrimPrefix(objName, "slice "))
 		slices[letter] = out
 	}
 	rs.mu.Lock()
@@ -323,4 +324,20 @@ func (rs *RadioState) FindActiveSlice() {
 		freq := slice["RF_frequency"]
 		rs.FlexClient.SendCmd(fmt.Sprintf("slice tune %s %s autopan=1", index, freq))
 	}
+}
+
+func (rs *RadioState) ActivateSlice(index int) {
+	rs.FlexClient.SliceSet(fmt.Sprintf("%d", index), flexclient.Object{"active": "1"})
+}
+
+func (rs *RadioState) TuneSlice(index int, freq float64) {
+	rs.FlexClient.SliceTune(fmt.Sprintf("%d", index), freq)
+}
+
+func (rs *RadioState) CenterWaterfallAt(freq float64) {
+	wf, pan := rs.getWaterfallAndPan()
+	if wf == nil || pan == nil {
+		return
+	}
+	rs.FlexClient.PanSet(wf["panadapter"], flexclient.Object{"center": fmt.Sprintf("%f", freq)})
 }

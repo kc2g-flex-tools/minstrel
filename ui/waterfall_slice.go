@@ -8,18 +8,22 @@ import (
 )
 
 type Slice struct {
-	Container *widget.Container
-	Letter    *widget.Text
-	Frequency *widget.Text
-	RXAnt     *widget.Text
-	TXAnt     *widget.Text
-	Mode      *widget.Text
-	Data      SliceData
+	Container      *widget.Container
+	Letter         *widget.Text
+	Frequency      *widget.Text
+	RXAnt          *widget.Text
+	TXAnt          *widget.Text
+	Mode           *widget.Text
+	Data           SliceData
+	FootprintLeft  float64
+	FootprintRight float64
+	TuneX          float64
 }
 
 type SliceData struct {
 	Present       bool
 	Active        bool
+	Index         int
 	Freq          float64
 	FreqFormatted string
 	Mode          string
@@ -69,9 +73,9 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.RowLayoutOpts.Spacing(4),
 		)),
 	)
-	s.Frequency = u.MakeText("Roboto-36", colornames.Seashell)
+	s.Frequency = u.MakeText("Roboto-32", colornames.Seashell)
 	row2.AddChild(s.Frequency)
-	s.Mode = u.MakeText("Roboto-18", colornames.Lightgray, widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Position: widget.RowLayoutPositionCenter})))
+	s.Mode = u.MakeText("Roboto-16", colornames.Lightgray, widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Position: widget.RowLayoutPositionCenter})))
 	row2.AddChild(s.Mode)
 	display.AddChild(row2)
 	s.Container.AddChild(display)

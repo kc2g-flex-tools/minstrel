@@ -40,6 +40,14 @@ type Waterfall struct {
 	ActiveSliceMarkImg   *ebimage.NineSlice
 	InactiveSliceMarkImg *ebimage.NineSlice
 	ScrollAccumulator    float64
+	Drag                 DragData
+}
+
+type DragData struct {
+	Active bool
+	What   int
+	Start  float64
+	Aux    float64
 }
 
 func (u *UI) MakeWaterfallPage() {
@@ -81,7 +89,7 @@ func (u *UI) MakeWaterfallPage() {
 	)
 
 	wf.Container.AddChild(wf.SliceArea)
-	wf.Waterfall = u.MakeWaterfall()
+	wf.Waterfall = u.MakeWaterfall(wf)
 	wf.Container.AddChild(wf.Waterfall.Widget)
 	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
 	wf.Waterfall.ActiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
@@ -99,10 +107,54 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 	wf.Waterfall.Update(u)
 }
 
-func (u *UI) MakeWaterfall() *Waterfall {
-	wf := &Waterfall{
-		Widget: widget.NewGraphic(),
-	}
+func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
+	wf := &Waterfall{}
+	wf.Widget = widget.NewGraphic(
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
+				for _, slice := range wfw.Slices {
+					if float64(args.OffsetX) >= slice.FootprintLeft && float64(args.OffsetX) <= slice.FootprintRight {
+						wf.Drag = DragData{
+							Active: true,
+							What:   slice.Data.Index,
+							Start:  float64(args.OffsetX),
+							Aux:    slice.TuneX - float64(args.OffsetX),
+						}
+						if !slice.Data.Active {
+							u.RadioShim.ActivateSlice(slice.Data.Index)
+						}
+					}
+				}
+				if !wf.Drag.Active {
+					wf.Drag = DragData{
+						Active: true,
+						What:   -1,
+						Start:  float64(args.OffsetX),
+						Aux:    (wf.DispLow + wf.DispHigh) / 2,
+					}
+				}
+			}),
+			widget.WidgetOpts.CursorMoveHandler(func(args *widget.WidgetCursorMoveEventArgs) {
+				if wf.Drag.Active && math.Abs(float64(args.OffsetX)-wf.Drag.Start) >= 4 {
+					if wf.Drag.What < 0 {
+						delta := wf.Drag.Start - float64(args.OffsetX)
+						freq := wf.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+						log.Printf("dragging waterfall, center it at %f", freq)
+						u.RadioShim.CenterWaterfallAt(freq)
+					} else {
+						newTuneX := float64(args.OffsetX) + wf.Drag.Aux
+						freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+						freq = math.Round(freq*1e4) / 1e4 // TODO: snap to tune step
+						log.Printf("dragging slice %d, tune it to %f", wf.Drag.What, freq)
+						u.RadioShim.TuneSlice(wf.Drag.What, freq)
+					}
+				}
+			}),
+			widget.WidgetOpts.MouseButtonReleasedHandler(func(args *widget.WidgetMouseButtonReleasedEventArgs) {
+				wf.Drag = DragData{}
+			}),
+		),
+	)
 	return wf
 }
 
@@ -229,11 +281,16 @@ func (wf *Waterfall) drawWaterfall() {
 	}
 }
 
-func (wf *Waterfall) drawSliceMarker(data SliceData) {
+func (wf *Waterfall) drawSliceMarker(slice *Slice) {
+	data := slice.Data
 	freq := data.Freq
 	markerPos := float64(wf.Width) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
 	shadeLeft := float64(wf.Width) * (freq + data.FiltLow/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
 	shadeRight := float64(wf.Width) * (freq + data.FiltHigh/1e6 - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+
+	slice.FootprintLeft = min(markerPos, shadeLeft)
+	slice.FootprintRight = max(markerPos, shadeRight)
+	slice.TuneX = markerPos
 
 	wf.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
 		opts.GeoM.Scale(shadeRight-shadeLeft, 1)
@@ -261,9 +318,9 @@ func (wf *Waterfall) Update(u *UI) {
 	wf.drawWaterfall()
 
 	for _, letter := range []string{"A", "B"} {
-		data := u.Widgets.WaterfallPage.Slices[letter].Data
-		if data.Present {
-			wf.drawSliceMarker(data)
+		slice := u.Widgets.WaterfallPage.Slices[letter]
+		if slice.Data.Present {
+			wf.drawSliceMarker(slice)
 		}
 	}
 }
