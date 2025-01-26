@@ -9,8 +9,13 @@ import (
 
 type radioProps = map[string]string
 
-func (u *UI) MakeRadiosPage() {
-	u.Widgets.Radios = u.MakeList(
+type RadiosPage struct {
+	List *widget.List
+}
+
+func (u *UI) MakeRadiosPage() *RadiosPage {
+	radios := &RadiosPage{}
+	radios.List = u.MakeList(
 		"Roboto-24",
 		func(e any) string {
 			switch entry := e.(type) {
@@ -38,6 +43,14 @@ func (u *UI) MakeRadiosPage() {
 					u.exit = true
 				case "Shutdown":
 					exec.Command("systemctl", "poweroff").Run()
+				case "Enter IP address...":
+					u.ShowWindow(
+						u.MakeEntryWindow("Enter IP", "Roboto-24", "Enter an IP[:port] to connect to a radio", "Roboto-24", func(ip string, ok bool) {
+							if ok {
+								u.Callbacks.Connect(ip)
+							}
+						}),
+					)
 				default:
 					fmt.Printf("not supported yet\n")
 				}
@@ -46,6 +59,7 @@ func (u *UI) MakeRadiosPage() {
 			}
 		},
 	)
+	return radios
 }
 
 func (u *UI) SetRadios(radios []radioProps) {
@@ -57,5 +71,5 @@ func (u *UI) SetRadios(radios []radioProps) {
 		entries[i] = &radios[i]
 	}
 	entries = append(entries, "Enter IP address...", "Exit", "Shutdown")
-	u.Widgets.Radios.SetEntries(entries)
+	u.Widgets.Radios.List.SetEntries(entries)
 }

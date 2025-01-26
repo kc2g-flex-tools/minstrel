@@ -22,8 +22,8 @@ const (
 
 type widgets struct {
 	Root          *widget.Container
-	Radios        *widget.List
 	MainPage      *widget.FlipBook
+	Radios        *RadiosPage
 	WaterfallPage *WaterfallWidgets
 }
 
@@ -80,9 +80,9 @@ func NewUI(cfg *Config) *UI {
 		},
 	}
 	u.MakeLayout()
-	u.MakeRadiosPage()
+	u.Widgets.Radios = u.MakeRadiosPage()
 	u.MakeWaterfallPage()
-	u.Widgets.MainPage.SetPage(u.Widgets.Radios)
+	u.Widgets.MainPage.SetPage(u.Widgets.Radios.List)
 
 	ebiten.SetTPS(cfg.FPS)
 	ebiten.SetScreenClearedEveryFrame(false)
