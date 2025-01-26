@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"strconv"
 
 	"github.com/ebitenui/ebitenui/widget"
 	"golang.org/x/image/colornames"
@@ -41,7 +42,6 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
 		)),
 	)
-
 	display := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
@@ -74,6 +74,14 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		)),
 	)
 	s.Frequency = u.MakeText("Roboto-32", colornames.Seashell)
+	s.Frequency.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
+		u.ShowWindow(
+			u.MakeEntryWindow("Enter frequency", "Roboto-24", "", "Roboto-24", func(freqStr string, ok bool) {
+				freq, _ := strconv.ParseFloat(freqStr, 64)
+				u.RadioShim.TuneSlice(s.Data.Index, freq)
+			}),
+		)
+	})
 	row2.AddChild(s.Frequency)
 	s.Mode = u.MakeText("Roboto-16", colornames.Lightgray, widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Position: widget.RowLayoutPositionCenter})))
 	row2.AddChild(s.Mode)

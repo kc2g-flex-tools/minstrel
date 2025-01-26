@@ -4,10 +4,12 @@ import (
 	"image"
 	"log"
 	"math"
+	"time"
 
 	ebimage "github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"golang.org/x/image/colornames"
 )
 
@@ -41,6 +43,7 @@ type Waterfall struct {
 	InactiveSliceMarkImg *ebimage.NineSlice
 	ScrollAccumulator    float64
 	Drag                 DragData
+	ClickTime            time.Time
 }
 
 type DragData struct {
@@ -49,6 +52,8 @@ type DragData struct {
 	Start  float64
 	Aux    float64
 }
+
+const tuneStep = 0.0001 // 100Hz. TODO: Configurable.
 
 func (u *UI) MakeWaterfallPage() {
 	wf := &WaterfallWidgets{}
@@ -105,6 +110,22 @@ func (u *UI) ShowWaterfall() {
 func (wf *WaterfallWidgets) Update(u *UI) {
 	wf.UpdateSlices(u)
 	wf.Waterfall.Update(u)
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		for _, slice := range wf.Slices {
+			if slice.Data.Active {
+				u.RadioShim.TuneSlice(slice.Data.Index, slice.Data.Freq-tuneStep)
+				break
+			}
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		for _, slice := range wf.Slices {
+			if slice.Data.Active {
+				u.RadioShim.TuneSlice(slice.Data.Index, slice.Data.Freq+tuneStep)
+				break
+			}
+		}
+	}
 }
 
 func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
@@ -112,6 +133,18 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 	wf.Widget = widget.NewGraphic(
 		widget.GraphicOpts.WidgetOpts(
 			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
+				now := time.Now()
+				if time.Since(wf.ClickTime) < 200*time.Millisecond {
+					freq := wf.DispLowLatch + (float64(args.OffsetX)/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+					freq = math.Round(freq/tuneStep) * tuneStep
+					for _, slice := range wfw.Slices {
+						if slice.Data.Active {
+							u.RadioShim.TuneSlice(slice.Data.Index, freq)
+							break
+						}
+					}
+				}
+				wf.ClickTime = now
 				for _, slice := range wfw.Slices {
 					if float64(args.OffsetX) >= slice.FootprintLeft && float64(args.OffsetX) <= slice.FootprintRight {
 						wf.Drag = DragData{
@@ -139,13 +172,11 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 					if wf.Drag.What < 0 {
 						delta := wf.Drag.Start - float64(args.OffsetX)
 						freq := wf.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-						log.Printf("dragging waterfall, center it at %f", freq)
 						u.RadioShim.CenterWaterfallAt(freq)
 					} else {
 						newTuneX := float64(args.OffsetX) + wf.Drag.Aux
 						freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-						freq = math.Round(freq*1e4) / 1e4 // TODO: snap to tune step
-						log.Printf("dragging slice %d, tune it to %f", wf.Drag.What, freq)
+						freq = math.Round(freq/tuneStep) * tuneStep
 						u.RadioShim.TuneSlice(wf.Drag.What, freq)
 					}
 				}
@@ -323,4 +354,5 @@ func (wf *Waterfall) Update(u *UI) {
 			wf.drawSliceMarker(slice)
 		}
 	}
+
 }
