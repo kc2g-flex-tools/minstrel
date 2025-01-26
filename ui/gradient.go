@@ -26,7 +26,7 @@ var waterfallGradient [4 * 256]byte
 
 func init() {
 	stops := []color.Color{
-		colornames.Darkblue, colornames.Blue, colornames.Green, colornames.Yellow, colornames.Red, colornames.White,
+		colornames.Black, colornames.Blue, colornames.Green, colornames.Yellow, colornames.Red, colornames.White,
 	}
 	labStops := make([]badcolor.Oklab, len(stops))
 	for i := range stops {
