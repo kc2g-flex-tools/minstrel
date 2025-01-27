@@ -18,7 +18,12 @@ func (u *UI) MakeWindow(title, titleFont string, content *widget.Container) *Win
 
 	titleBar := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(color.NRGBA{0xee, 0xee, 0xee, 0xc0})),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.Insets{
+				Left:  4,
+				Right: 4,
+			}),
+		)),
 	)
 	titleBar.AddChild(widget.NewText(
 		widget.TextOpts.Text(title, titleFace, color.NRGBA{0x44, 0x44, 0x44, 0xff}),
@@ -30,14 +35,20 @@ func (u *UI) MakeWindow(title, titleFont string, content *widget.Container) *Win
 		widget.ContainerOpts.BackgroundImage(NewNineSliceBorder(color.NRGBA{0x44, 0x44, 0x44, 0xc0}, color.NRGBA{0xee, 0xee, 0xee, 0xc0}, 2)),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
 			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(8+2)),
-		)))
+		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchHorizontal: true,
+			StretchVertical:   true,
+		})),
+	)
 	contentWrapper.AddChild(content)
 
+	tbWidth, tbHeight := titleBar.PreferredSize()
 	window := widget.NewWindow(
-		widget.WindowOpts.TitleBar(titleBar, 24),
+		widget.WindowOpts.TitleBar(titleBar, tbHeight),
 		widget.WindowOpts.Contents(contentWrapper),
 		widget.WindowOpts.Modal(),
-		widget.WindowOpts.MinSize(400, 200),
+		widget.WindowOpts.MinSize(tbWidth, 0),
 	)
 	return &Window{
 		widget: window,
@@ -99,6 +110,8 @@ func (u *UI) MakeEntryWindow(title, titleFont, prompt, mainFont string, cb func(
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
 			widget.RowLayoutOpts.Spacing(8),
 		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true})),
 	)
 	buttonRow.AddChild(
 		u.MakeButton(mainFont, "OK", func(_ *widget.ButtonClickedEventArgs) {
@@ -166,7 +179,14 @@ func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []a
 
 func (u *UI) ShowWindow(window *Window) {
 	win := window.widget
-	x, y := win.Contents.PreferredSize()
+	win.Contents.Update()
+	win.TitleBar.Update()
+	contentWidth, contentHeight := win.Contents.PreferredSize()
+	tbWidth, tbHeight := win.TitleBar.PreferredSize()
+
+	x := max(contentWidth, tbWidth)
+	y := contentHeight + tbHeight
+
 	if minSize := win.MinSize; minSize != nil {
 		x, y = max(x, minSize.X), max(y, minSize.Y)
 	}
