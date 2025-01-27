@@ -240,10 +240,12 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	// in case of packet reordering.
 	if data.Timecode != rs.WFState.timecode {
 		rs.WFState.timecode = data.Timecode
-		rs.WFState.dataLow = float64(data.FrameLowFreq) / 1e6
+		low := data.FrameLowFreq
 		// The +1 is very confusing and probably wrong,
 		// and yet it seems to produce a correct result.
-		rs.WFState.dataHigh = float64(data.FrameLowFreq+uint64(data.TotalBinsInFrame)*(data.BinBandwidth+1)) / 1e6
+		high := low + uint64(data.TotalBinsInFrame-1)*(data.BinBandwidth+1)
+		rs.WFState.dataLow = float64(low) / 1e6
+		rs.WFState.dataHigh = float64(high) / 1e6
 		rs.WFState.binsFilled = 0
 	}
 

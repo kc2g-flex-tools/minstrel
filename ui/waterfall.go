@@ -273,7 +273,7 @@ func (wf *Waterfall) handleFreqScroll() {
 		} else {
 			freqShift := wf.PrevDataLow - wf.DataLow
 			wf.ScrollAccumulator += freqShift * float64(wf.Bins) / (wf.DataHigh - wf.DataLow)
-			binShift := float64(int(wf.ScrollAccumulator))
+			binShift := math.Round(wf.ScrollAccumulator)
 			wf.ScrollAccumulator -= binShift
 			if binShift != 0 {
 				oldBb := wf.BackBuffer
@@ -297,7 +297,7 @@ func (wf *Waterfall) drawWaterfall() {
 	geom.Translate(wf.DataLow-wf.DispLowLatch, 0)
 	geom.Scale(float64(wf.Width-1)/(wf.DispHighLatch-wf.DispLowLatch), 1)
 
-	// log.Printf("data: (%f - %f) in %d, disp: (%f - %f) in %d, scale: %#v\n", wf.DataLow, wf.DataHigh, wf.Bins, wf.DispLowLatch, wf.DispHighLatch, wf.Width, geom)
+	// log.Printf("data: (%f - %f) in %d, disp: (%f - %f) in %d, scale: %s\n", wf.DataLow, wf.DataHigh, wf.Bins, wf.DispLowLatch, wf.DispHighLatch, wf.Width, geom.String())
 	wf.Widget.Image.Clear()
 	wf.Widget.Image.DrawImage(
 		wf.BackBuffer.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.Height)).(*ebiten.Image),
