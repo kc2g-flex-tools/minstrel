@@ -73,7 +73,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.RowLayoutOpts.Spacing(4),
 		)),
 	)
-	s.Frequency = u.MakeText("Roboto-32", colornames.Seashell)
+	s.Frequency = u.MakeText("Roboto-Light-32", colornames.Seashell)
 	s.Frequency.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
 		u.ShowWindow(
 			u.MakeEntryWindow("Enter frequency", "Roboto-24", "", "Roboto-24", func(freqStr string, ok bool) {
