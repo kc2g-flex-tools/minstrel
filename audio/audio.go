@@ -96,5 +96,5 @@ func (a *Audio) Start() {
 }
 
 func (a *Audio) Pause() {
-	a.player.Pause()
+	a.player.Stop()
 }
