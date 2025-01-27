@@ -267,11 +267,11 @@ func (rs *RadioState) playOpus(pkt flexclient.VitaPacket) {
 func (rs *RadioState) ToggleAudio(enable bool) {
 	if enable {
 		rs.FlexClient.SendCmd("stream create type=remote_audio_rx compression=opus")
-		rs.Audio.Player.Start()
+		rs.Audio.Start()
 	} else {
 		rs.FlexClient.SendCmd(fmt.Sprintf("stream remove 0x%08x", rs.AudioStream))
 		rs.AudioStream = 0
-		rs.Audio.Player.Pause()
+		rs.Audio.Pause()
 	}
 }
 

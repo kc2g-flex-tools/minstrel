@@ -12,7 +12,7 @@ import (
 type Audio struct {
 	Context  *pulse.Client
 	Opus     *opus.Decoder
-	Player   *pulse.PlaybackStream
+	player   *pulse.PlaybackStream
 	s16Buf   [512]int16
 	f32buf   [4]byte
 	cbuf     *CircularBuf[[4]byte]
@@ -23,7 +23,7 @@ type Audio struct {
 func NewAudio() *Audio {
 	audio := &Audio{
 		cbuf:     NewCircularBuf[[4]byte](2880),
-		cbufSize: 2880, // max cbuf latency: 120ms
+		cbufSize: 2880, // max cbuf latency: 240ms
 		wakeup:   make(chan struct{}),
 	}
 	pc, err := pulse.NewClient(
@@ -33,7 +33,7 @@ func NewAudio() *Audio {
 		panic(err)
 	}
 	audio.Context = pc
-	audio.Player, err = pc.NewPlayback(
+	audio.player, err = pc.NewPlayback(
 		pulse.NewReader(audio, proto.FormatFloat32LE),
 		pulse.PlaybackChannels(proto.ChannelMap{proto.ChannelMono}),
 		pulse.PlaybackLatency(50.0/1000),
@@ -88,4 +88,13 @@ func (a *Audio) Read(dest []byte) (n int, err error) {
 		n += 4
 	}
 	return
+}
+
+func (a *Audio) Start() {
+	a.cbuf.Clear()
+	a.player.Start()
+}
+
+func (a *Audio) Pause() {
+	a.player.Pause()
 }
