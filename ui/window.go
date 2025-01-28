@@ -130,7 +130,7 @@ func (u *UI) MakeEntryWindow(title, titleFont, prompt, mainFont string, cb func(
 	return window
 }
 
-func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []any, labeler func(any) string, cb func(any, bool)) *Window {
+func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []any, selected any, labeler func(any) string, cb func(any, bool)) *Window {
 	var window *Window
 
 	contents := widget.NewContainer(
@@ -151,13 +151,18 @@ func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []a
 			}))))
 	}
 
-	list := u.MakeList(mainFont, labeler, func(args *widget.ListEntrySelectedEventArgs) {
-		cb(args.Entry, true)
-		window.widget.Close()
-	})
+	list := u.MakeList(mainFont, labeler)
 	for _, item := range items {
 		list.AddEntry(item)
 	}
+	if selected != nil {
+		list.SetSelectedEntry(selected)
+	}
+	list.EntrySelectedEvent.AddHandler(func(e any) {
+		args := e.(*widget.ListEntrySelectedEventArgs)
+		cb(args.Entry, true)
+		window.widget.Close()
+	})
 
 	contents.AddChild(list)
 	buttonRow := widget.NewContainer(

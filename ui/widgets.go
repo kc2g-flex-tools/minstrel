@@ -54,7 +54,7 @@ func (u *UI) MakeToggleButton(fontName string, text string, handler func(*widget
 	)
 }
 
-func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(*widget.ListEntrySelectedEventArgs)) *widget.List {
+func (u *UI) MakeList(fontName string, labeler func(e any) string) *widget.List {
 	return widget.NewList(
 		widget.ListOpts.ContainerOpts(widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
@@ -85,12 +85,13 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(
 		widget.ListOpts.EntryFontFace(u.Font(fontName)),
 		// Set the colors for the list
 		widget.ListOpts.EntryColor(&widget.ListEntryColor{
-			Selected:           colornames.White,
-			SelectedBackground: colornames.Darkcyan,
-			Unselected:         colornames.White,
-			DisabledSelected:   colornames.Lightgray,
-			DisabledUnselected: colornames.Lightgray,
-			FocusedBackground:  colornames.Darkcyan,
+			Selected:                  colornames.White,
+			Unselected:                colornames.White,
+			SelectedBackground:        colornames.Dimgray,
+			DisabledSelected:          colornames.Lightgray,
+			DisabledUnselected:        colornames.Lightgray,
+			FocusedBackground:         colornames.Steelblue,
+			SelectedFocusedBackground: colornames.Steelblue,
 		}),
 		// This required function returns the string displayed in the list
 		widget.ListOpts.EntryLabelFunc(labeler),
@@ -98,8 +99,7 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string, handler func(
 		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(5)),
 		// Text position for each entry
 		widget.ListOpts.EntryTextPosition(widget.TextPositionStart, widget.TextPositionCenter),
-		// This handler defines what function to run when a list item is selected.
-		widget.ListOpts.EntrySelectedHandler(handler),
+		widget.ListOpts.AllowReselect(),
 	)
 }
 

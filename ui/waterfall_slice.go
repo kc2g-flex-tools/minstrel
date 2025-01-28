@@ -92,7 +92,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		u.ShowWindow(
 			u.MakeListWindow(
 				"Select mode", "Roboto-16", "", "Roboto-16",
-				modes, func(m any) string { return m.(string) },
+				modes, s.Data.Mode, func(m any) string { return m.(string) },
 				func(item any, ok bool) {
 					if ok {
 						u.RadioShim.SetSliceMode(s.Data.Index, item.(string))

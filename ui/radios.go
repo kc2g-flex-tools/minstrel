@@ -28,7 +28,10 @@ func (u *UI) MakeRadiosPage() *RadiosPage {
 				return "<error>"
 			}
 		},
-		func(event *widget.ListEntrySelectedEventArgs) {
+	)
+	radios.List.EntrySelectedEvent.AddHandler(
+		func(e any) {
+			event := e.(*widget.ListEntrySelectedEventArgs)
 			cb := u.Callbacks.Connect
 			if cb == nil {
 				return
