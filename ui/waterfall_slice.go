@@ -56,14 +56,14 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	)
 	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
 	s.Letter = widget.NewText(
-		widget.TextOpts.Text(letter, u.Font("Roboto-36"), colornames.Darkslategray),
+		widget.TextOpts.Text(letter, u.Font("Roboto-Semibold-36"), colornames.Darkslategray),
 		widget.TextOpts.Insets(widget.Insets{}),
 	)
 	letterContainer.AddChild(s.Letter)
 	row1.AddChild(letterContainer)
-	s.RXAnt = u.MakeText("Roboto-24", colornames.Deepskyblue)
+	s.RXAnt = u.MakeText("Roboto-Condensed-24", colornames.Deepskyblue)
 	row1.AddChild(s.RXAnt)
-	s.TXAnt = u.MakeText("Roboto-24", colornames.Red)
+	s.TXAnt = u.MakeText("Roboto-Condensed-24", colornames.Red)
 	row1.AddChild(s.TXAnt)
 	display.AddChild(row1)
 
@@ -73,7 +73,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.RowLayoutOpts.Spacing(4),
 		)),
 	)
-	s.Frequency = u.MakeText("Roboto-Light-32", colornames.Seashell)
+	s.Frequency = u.MakeText("Roboto-Condensed-Light-32", colornames.Seashell)
 	s.Frequency.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
 		u.ShowWindow(
 			u.MakeEntryWindow("Enter frequency", "Roboto-24", "", "Roboto-24", func(freqStr string, ok bool) {

@@ -27,9 +27,10 @@ type fontspec struct {
 
 var fontFiles = map[string]fontspec{
 	"Roboto":                 fontspec{Filename: "Roboto-Variable.ttf"},
-	"Roboto-Condensed":       fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wdth"), Value: 85}}},
+	"Roboto-Semibold":        fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 600}}},
+	"Roboto-Condensed":       fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wdth"), Value: 87.5}}},
 	"Roboto-Light":           fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 1}}},
-	"Roboto-Condensed-Light": fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}, {Tag: text.MustParseTag("wdth"), Value: 85}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 1}}},
+	"Roboto-Condensed-Light": fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}, {Tag: text.MustParseTag("wdth"), Value: 87.5}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 1}}},
 	"Icons":                  fontspec{Filename: "MaterialSymbolsSharp-Regular.ttf"},
 	"Icons-Filled":           fontspec{Filename: "MaterialSymbolsSharp_Filled-Regular.ttf"},
 }
