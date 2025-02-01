@@ -85,7 +85,7 @@ func NewUI(cfg *Config) *UI {
 	}
 	u.MakeLayout()
 	u.Widgets.Radios = u.MakeRadiosPage()
-	u.MakeWaterfallPage()
+	u.Widgets.WaterfallPage = u.MakeWaterfallPage()
 	u.Widgets.MainPage.SetPage(u.Widgets.Radios.List)
 
 	ebiten.SetTPS(cfg.FPS)
@@ -114,9 +114,6 @@ func (u *UI) Update() error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
-	}
-	if u.state == MainState {
-		u.Widgets.WaterfallPage.Update(u)
 	}
 	u.runDeferred()
 	u.eui.Update()

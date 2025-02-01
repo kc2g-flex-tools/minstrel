@@ -14,7 +14,7 @@ import (
 )
 
 type WaterfallWidgets struct {
-	Container *widget.Container
+	Container *HookContainer
 	SliceArea *widget.Container
 	Slices    map[string]*Slice
 	Waterfall *Waterfall
@@ -55,9 +55,9 @@ type DragData struct {
 
 const tuneStep = 0.0001 // 100Hz. TODO: Configurable.
 
-func (u *UI) MakeWaterfallPage() {
+func (u *UI) MakeWaterfallPage() *WaterfallWidgets {
 	wf := &WaterfallWidgets{}
-	wf.Container = widget.NewContainer(
+	container := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
@@ -93,13 +93,22 @@ func (u *UI) MakeWaterfallPage() {
 		wf.Slices["B"].Container,
 	)
 
-	wf.Container.AddChild(wf.SliceArea)
+	container.AddChild(wf.SliceArea)
 	wf.Waterfall = u.MakeWaterfall(wf)
-	wf.Container.AddChild(wf.Waterfall.Widget)
+	container.AddChild(wf.Waterfall.Widget)
 	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
 	wf.Waterfall.ActiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
 	wf.Waterfall.InactiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Red)
+
 	u.Widgets.WaterfallPage = wf
+	wf.Container = NewHookContainer(
+		HookContainerOpts.Child(container),
+		HookContainerOpts.UpdateHook(func(hc *HookContainer) {
+			wf.Update(u)
+			hc.UpdateChild()
+		}),
+	)
+	return wf
 }
 
 func (u *UI) ShowWaterfall() {
