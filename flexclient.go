@@ -15,6 +15,7 @@ import (
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
 	"github.com/kc2g-flex-tools/minstrel/audio"
+	"github.com/kc2g-flex-tools/minstrel/radioshim"
 	"github.com/kc2g-flex-tools/minstrel/ui"
 )
 
@@ -67,7 +68,7 @@ type RadioState struct {
 	WaterfallStream uint32
 	AudioStream     uint32
 	WFState         WFState
-	Slices          map[string]ui.SliceData
+	Slices          map[string]radioshim.SliceData
 }
 
 func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio) *RadioState {
@@ -202,13 +203,13 @@ func formatFreq(fFloat float64, err error) string {
 }
 
 func (rs *RadioState) updateGUI() {
-	slices := map[string]ui.SliceData{}
+	slices := map[string]radioshim.SliceData{}
 	for objName, slice := range rs.FlexClient.FindObjects("slice ") {
 		if slice["client_handle"] != rs.ClientID {
 			continue
 		}
 		letter := slice["index_letter"]
-		out := ui.SliceData{Present: slice["in_use"] != "0"}
+		out := radioshim.SliceData{Present: slice["in_use"] != "0"}
 		var err error
 		out.Freq, err = strconv.ParseFloat(slice["RF_frequency"], 64)
 		out.FreqFormatted = formatFreq(out.Freq, err)
@@ -275,7 +276,7 @@ func (rs *RadioState) ToggleAudio(enable bool) {
 	}
 }
 
-func (rs *RadioState) GetSlices() map[string]ui.SliceData {
+func (rs *RadioState) GetSlices() map[string]radioshim.SliceData {
 	rs.mu.RLock()
 	defer rs.mu.RUnlock()
 	return rs.Slices

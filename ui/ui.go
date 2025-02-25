@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
 type State int
@@ -31,18 +32,6 @@ type callbacks struct {
 	Connect func(string)
 }
 
-type RadioShim interface {
-	ToggleAudio(bool)
-	ZoomIn()
-	ZoomOut()
-	FindActiveSlice()
-	GetSlices() map[string]SliceData
-	TuneSlice(int, float64)
-	SetSliceMode(int, string)
-	CenterWaterfallAt(float64)
-	ActivateSlice(int)
-}
-
 type UI struct {
 	mu        sync.RWMutex
 	update    bool
@@ -55,7 +44,7 @@ type UI struct {
 	eui       *ebitenui.UI
 	Widgets   widgets
 	Callbacks callbacks
-	RadioShim RadioShim
+	RadioShim radioshim.Shim
 	deferred  []func()
 }
 
@@ -63,6 +52,12 @@ type Config struct {
 	Touch      bool `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
 	FPS        int  `dialsdesc:"Framerate" dialsflag:"fps"`
 	Fullscreen bool `dialsdesc:"Start in fullscreen"`
+}
+
+func DefaultConfig() *Config {
+	return &Config{
+		FPS: 30,
+	}
 }
 
 func NewUI(cfg *Config) *UI {

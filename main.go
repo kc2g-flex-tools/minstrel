@@ -27,10 +27,7 @@ func defaultConfig() *Config {
 	return &Config{
 		Station: "Minstrel",
 		Profile: "",
-		UI: &ui.Config{
-			Touch: false,
-			FPS:   30,
-		},
+		UI:      ui.DefaultConfig(),
 	}
 }
 

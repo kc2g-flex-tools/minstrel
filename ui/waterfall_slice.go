@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/ebitenui/ebitenui/widget"
+	"github.com/kc2g-flex-tools/minstrel/radioshim"
 	"golang.org/x/image/colornames"
 )
 
@@ -15,24 +16,10 @@ type Slice struct {
 	RXAnt          *widget.Text
 	TXAnt          *widget.Text
 	Mode           *widget.Text
-	Data           SliceData
+	Data           radioshim.SliceData
 	FootprintLeft  float64
 	FootprintRight float64
 	TuneX          float64
-}
-
-type SliceData struct {
-	Present       bool
-	Active        bool
-	Index         int
-	Freq          float64
-	FreqFormatted string
-	Mode          string
-	Modes         []string
-	RXAnt         string
-	TXAnt         string
-	FiltHigh      float64
-	FiltLow       float64
 }
 
 func (u *UI) MakeSlice(letter string) *Slice {
