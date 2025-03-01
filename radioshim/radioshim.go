@@ -6,10 +6,11 @@ type Shim interface {
 	ZoomOut()
 	FindActiveSlice()
 	GetSlices() map[string]SliceData
-	TuneSlice(int, float64)
+	TuneSlice(SliceData, float64, bool)
 	SetSliceMode(int, string)
 	CenterWaterfallAt(float64)
 	ActivateSlice(int)
+	TuneSliceStep(SliceData, int)
 }
 
 type SliceData struct {
@@ -24,4 +25,5 @@ type SliceData struct {
 	TXAnt         string
 	FiltHigh      float64
 	FiltLow       float64
+	TuneStep      float64
 }

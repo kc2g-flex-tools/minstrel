@@ -48,12 +48,10 @@ type Waterfall struct {
 
 type DragData struct {
 	Active bool
-	What   int
+	What   string
 	Start  float64
 	Aux    float64
 }
-
-const tuneStep = 0.0001 // 100Hz. TODO: Configurable.
 
 func (u *UI) MakeWaterfallPage() {
 	wf := &WaterfallWidgets{}
@@ -113,7 +111,7 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		for _, slice := range wf.Slices {
 			if slice.Data.Active {
-				u.RadioShim.TuneSlice(slice.Data.Index, slice.Data.Freq-tuneStep)
+				u.RadioShim.TuneSliceStep(slice.Data, -1)
 				break
 			}
 		}
@@ -121,7 +119,7 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		for _, slice := range wf.Slices {
 			if slice.Data.Active {
-				u.RadioShim.TuneSlice(slice.Data.Index, slice.Data.Freq+tuneStep)
+				u.RadioShim.TuneSliceStep(slice.Data, 1)
 				break
 			}
 		}
@@ -136,20 +134,19 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 				now := time.Now()
 				if time.Since(wf.ClickTime) < 200*time.Millisecond {
 					freq := wf.DispLowLatch + (float64(args.OffsetX)/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-					freq = math.Round(freq/tuneStep) * tuneStep
 					for _, slice := range wfw.Slices {
 						if slice.Data.Active {
-							u.RadioShim.TuneSlice(slice.Data.Index, freq)
+							u.RadioShim.TuneSlice(slice.Data, freq, true)
 							break
 						}
 					}
 				}
 				wf.ClickTime = now
-				for _, slice := range wfw.Slices {
+				for key, slice := range wfw.Slices {
 					if float64(args.OffsetX) >= slice.FootprintLeft && float64(args.OffsetX) <= slice.FootprintRight {
 						wf.Drag = DragData{
 							Active: true,
-							What:   slice.Data.Index,
+							What:   key,
 							Start:  float64(args.OffsetX),
 							Aux:    slice.TuneX - float64(args.OffsetX),
 						}
@@ -161,7 +158,7 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 				if !wf.Drag.Active {
 					wf.Drag = DragData{
 						Active: true,
-						What:   -1,
+						What:   "waterfall",
 						Start:  float64(args.OffsetX),
 						Aux:    (wf.DispLow + wf.DispHigh) / 2,
 					}
@@ -169,15 +166,14 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 			}),
 			widget.WidgetOpts.CursorMoveHandler(func(args *widget.WidgetCursorMoveEventArgs) {
 				if wf.Drag.Active && math.Abs(float64(args.OffsetX)-wf.Drag.Start) >= 4 {
-					if wf.Drag.What < 0 {
+					if wf.Drag.What == "waterfall" {
 						delta := wf.Drag.Start - float64(args.OffsetX)
 						freq := wf.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
 						u.RadioShim.CenterWaterfallAt(freq)
 					} else {
 						newTuneX := float64(args.OffsetX) + wf.Drag.Aux
 						freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-						freq = math.Round(freq/tuneStep) * tuneStep
-						u.RadioShim.TuneSlice(wf.Drag.What, freq)
+						u.RadioShim.TuneSlice(wfw.Slices[wf.Drag.What].Data, freq, true)
 					}
 				}
 			}),

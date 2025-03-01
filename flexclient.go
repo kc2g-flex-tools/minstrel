@@ -221,6 +221,8 @@ func (rs *RadioState) updateGUI() {
 		out.FiltLow, _ = strconv.ParseFloat(slice["filter_lo"], 64)
 		out.FiltHigh, _ = strconv.ParseFloat(slice["filter_hi"], 64)
 		out.Index, _ = strconv.Atoi(strings.TrimPrefix(objName, "slice "))
+		out.TuneStep, _ = strconv.ParseFloat(slice["step"], 64)
+		out.TuneStep /= 1e6
 		slices[letter] = out
 	}
 	rs.mu.Lock()
@@ -333,8 +335,16 @@ func (rs *RadioState) ActivateSlice(index int) {
 	rs.FlexClient.SliceSet(fmt.Sprintf("%d", index), flexclient.Object{"active": "1"})
 }
 
-func (rs *RadioState) TuneSlice(index int, freq float64) {
-	rs.FlexClient.SliceTune(fmt.Sprintf("%d", index), freq)
+func (rs *RadioState) TuneSlice(data radioshim.SliceData, freq float64, snap bool) {
+	if snap {
+		freq = math.Round(freq/data.TuneStep) * data.TuneStep
+	}
+	rs.FlexClient.SliceTune(fmt.Sprintf("%d", data.Index), freq)
+}
+
+func (rs *RadioState) TuneSliceStep(data radioshim.SliceData, steps int) {
+	newFreq := data.Freq + float64(steps)*data.TuneStep
+	rs.FlexClient.SliceTune(fmt.Sprintf("%d", data.Index), newFreq)
 }
 
 func (rs *RadioState) SetSliceMode(index int, mode string) {

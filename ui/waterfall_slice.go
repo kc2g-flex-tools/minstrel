@@ -65,7 +65,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		u.ShowWindow(
 			u.MakeEntryWindow("Enter frequency", "Roboto-24", "", "Roboto-24", func(freqStr string, ok bool) {
 				freq, _ := strconv.ParseFloat(freqStr, 64)
-				u.RadioShim.TuneSlice(s.Data.Index, freq)
+				u.RadioShim.TuneSlice(s.Data, freq, false)
 			}),
 		)
 	})
