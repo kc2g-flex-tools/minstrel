@@ -69,7 +69,7 @@ type RadioState struct {
 	WaterfallStream uint32
 	AudioStream     uint32
 	WFState         WFState
-	Slices          map[string]radioshim.SliceData
+	Slices          map[string]*radioshim.SliceData
 }
 
 func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio) *RadioState {
@@ -204,7 +204,7 @@ func formatFreq(fFloat float64, err error) string {
 }
 
 func (rs *RadioState) updateGUI() {
-	slices := map[string]radioshim.SliceData{}
+	slices := map[string]*radioshim.SliceData{}
 	for objName, slice := range rs.FlexClient.FindObjects("slice ") {
 		if slice["client_handle"] != rs.ClientID {
 			continue
@@ -224,7 +224,7 @@ func (rs *RadioState) updateGUI() {
 		out.Index, _ = strconv.Atoi(strings.TrimPrefix(objName, "slice "))
 		out.TuneStep, _ = strconv.ParseFloat(slice["step"], 64)
 		out.TuneStep /= 1e6
-		slices[letter] = out
+		slices[letter] = &out
 	}
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
@@ -279,7 +279,7 @@ func (rs *RadioState) ToggleAudio(enable bool) {
 	}
 }
 
-func (rs *RadioState) GetSlices() map[string]radioshim.SliceData {
+func (rs *RadioState) GetSlices() map[string]*radioshim.SliceData {
 	rs.mu.RLock()
 	defer rs.mu.RUnlock()
 	return rs.Slices
@@ -336,14 +336,15 @@ func (rs *RadioState) ActivateSlice(index int) {
 	rs.FlexClient.SliceSet(fmt.Sprintf("%d", index), flexclient.Object{"active": "1"})
 }
 
-func (rs *RadioState) TuneSlice(data radioshim.SliceData, freq float64, snap bool) {
+func (rs *RadioState) TuneSlice(data *radioshim.SliceData, freq float64, snap bool) {
 	if snap {
 		freq = math.Round(freq/data.TuneStep) * data.TuneStep
 	}
 	rs.FlexClient.SliceTune(fmt.Sprintf("%d", data.Index), freq)
+	data.Freq = freq
 }
 
-func (rs *RadioState) TuneSliceStep(data radioshim.SliceData, steps int) {
+func (rs *RadioState) TuneSliceStep(data *radioshim.SliceData, steps int) {
 	newFreq := data.Freq + float64(steps)*data.TuneStep
 	rs.FlexClient.SliceTune(fmt.Sprintf("%d", data.Index), newFreq)
 }

@@ -345,8 +345,7 @@ func (wf *Waterfall) Update(u *UI) {
 	wf.handleFreqScroll()
 	wf.drawWaterfall()
 
-	for _, letter := range []string{"A", "B"} {
-		slice := u.Widgets.WaterfallPage.Slices[letter]
+	for _, slice := range u.Widgets.WaterfallPage.Slices {
 		if slice.Data.Present {
 			wf.drawSliceMarker(slice)
 		}

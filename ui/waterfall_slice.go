@@ -16,14 +16,16 @@ type Slice struct {
 	RXAnt          *widget.Text
 	TXAnt          *widget.Text
 	Mode           *widget.Text
-	Data           radioshim.SliceData
+	Data           *radioshim.SliceData
 	FootprintLeft  float64
 	FootprintRight float64
 	TuneX          float64
 }
 
 func (u *UI) MakeSlice(letter string) *Slice {
-	s := &Slice{}
+	s := &Slice{
+		Data: &radioshim.SliceData{},
+	}
 	s.Container = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4,
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
@@ -107,6 +109,10 @@ func (w *WaterfallWidgets) UpdateSlices(u *UI) {
 	slices := u.RadioShim.GetSlices()
 	for _, letter := range []string{"A", "B"} {
 		slice := slices[letter]
+		if slice == nil {
+			slice = &radioshim.SliceData{}
+		}
+
 		widg := w.Slices[letter]
 		widg.Data = slice
 		if !slice.Present {

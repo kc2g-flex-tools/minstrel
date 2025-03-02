@@ -5,12 +5,12 @@ type Shim interface {
 	ZoomIn()
 	ZoomOut()
 	FindActiveSlice()
-	GetSlices() map[string]SliceData
-	TuneSlice(SliceData, float64, bool)
+	GetSlices() map[string]*SliceData
+	TuneSlice(*SliceData, float64, bool)
 	SetSliceMode(int, string)
 	CenterWaterfallAt(float64)
 	ActivateSlice(int)
-	TuneSliceStep(SliceData, int)
+	TuneSliceStep(*SliceData, int)
 }
 
 type SliceData struct {
