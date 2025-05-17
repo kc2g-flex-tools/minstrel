@@ -14,6 +14,13 @@ apt install build-essential golang-go libopusfile-dev libasound2-dev \
     libglfw3-dev libxcursor-dev libxinerama-dev libxi-dev libxxf86vm-dev
 ```
 
+Install deps. For Fedora:
+
+```sh
+dnf install golang opusfile-devel alsa-lib-devel glfw-devel \
+    libXcursor-devel libXinerama-devel libXi-devel libXxf86vm-devel
+```
+
 Build:
 
 ```sh
