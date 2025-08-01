@@ -81,7 +81,7 @@ func main() {
 			log.Fatal("flexclient exited")
 		}()
 		rs = NewRadioState(fc, u, audio)
-		go rs.Run()
+		go rs.Run(mainCtx)
 		u.ShowWaterfall()
 	}
 

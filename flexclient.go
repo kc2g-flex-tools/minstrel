@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -81,7 +82,7 @@ func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio) *
 	return rs
 }
 
-func (rs *RadioState) Run() {
+func (rs *RadioState) Run(ctx context.Context) {
 	fc := rs.FlexClient
 	waterfalls := fc.Subscribe(flexclient.Subscription{
 		Prefix:  "display waterfall ",
