@@ -8,7 +8,7 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.6
 	github.com/hb9fxq/flexlib-go v0.0.0-20201128184122-8acafd8a4e14
 	github.com/jfreymuth/pulse v0.1.1
-	github.com/kc2g-flex-tools/flexclient v0.5.1
+	github.com/kc2g-flex-tools/flexclient v0.7.0
 	github.com/tinne26/badcolor v0.0.0-20240606171339-6b0c9b4d5e38
 	github.com/vimeo/dials v0.17.1
 	golang.org/x/image v0.25.0
@@ -18,7 +18,6 @@ require (
 require (
 	github.com/ebitengine/gomobile v0.0.0-20250209143333-6071a2a2351c // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
-	github.com/ebitengine/oto/v3 v3.3.2 // indirect
 	github.com/ebitengine/purego v0.8.2 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/go-text/typesetting v0.3.0 // indirect

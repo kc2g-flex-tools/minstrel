@@ -148,7 +148,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 						log.Println("my waterfall is", streamStr)
 						rs.WaterfallStream = uint32(streamId)
 						wf, _ := rs.getWaterfallAndPan()
-						fc.PanSet(wf["panadapter"], flexclient.Object{"xpixels": "1000"})
+						_, err := fc.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"xpixels": "1000"})
+						if err != nil {
+							log.Println("PanSet error:", err)
+						}
 					}
 					center, _ := strconv.ParseFloat(st.CurrentState["center"], 64)
 					span, _ := strconv.ParseFloat(st.CurrentState["bandwidth"], 64)
@@ -307,7 +310,10 @@ func (rs *RadioState) ZoomIn() {
 	bw, _ := strconv.ParseFloat(pan["bandwidth"], 64)
 	minBw, _ := strconv.ParseFloat(pan["min_bw"], 64)
 	bw = max(bw/2, minBw)
-	rs.FlexClient.PanSet(wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
+	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
+	if err != nil {
+		log.Println("PanSet error:", err)
+	}
 }
 
 func (rs *RadioState) ZoomOut() {
@@ -318,7 +324,10 @@ func (rs *RadioState) ZoomOut() {
 	bw, _ := strconv.ParseFloat(pan["bandwidth"], 64)
 	maxBw, _ := strconv.ParseFloat(pan["max_bw"], 64)
 	bw = min(bw*2, maxBw)
-	rs.FlexClient.PanSet(wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
+	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
+	if err != nil {
+		log.Println("PanSet error:", err)
+	}
 }
 
 func (rs *RadioState) FindActiveSlice() {
@@ -333,24 +342,36 @@ func (rs *RadioState) FindActiveSlice() {
 }
 
 func (rs *RadioState) ActivateSlice(index int) {
-	rs.FlexClient.SliceSet(fmt.Sprintf("%d", index), flexclient.Object{"active": "1"})
+	_, err := rs.FlexClient.SliceSet(context.Background(), fmt.Sprintf("%d", index), flexclient.Object{"active": "1"})
+	if err != nil {
+		log.Println("SliceSet error:", err)
+	}
 }
 
 func (rs *RadioState) TuneSlice(data *radioshim.SliceData, freq float64, snap bool) {
 	if snap {
 		freq = math.Round(freq/data.TuneStep) * data.TuneStep
 	}
-	rs.FlexClient.SliceTune(fmt.Sprintf("%d", data.Index), freq)
+	_, err := rs.FlexClient.SliceTune(context.Background(), fmt.Sprintf("%d", data.Index), freq)
+	if err != nil {
+		log.Println("SliceTune error:", err)
+	}
 	data.Freq = freq
 }
 
 func (rs *RadioState) TuneSliceStep(data *radioshim.SliceData, steps int) {
 	newFreq := data.Freq + float64(steps)*data.TuneStep
-	rs.FlexClient.SliceTune(fmt.Sprintf("%d", data.Index), newFreq)
+	_, err := rs.FlexClient.SliceTune(context.Background(), fmt.Sprintf("%d", data.Index), newFreq)
+	if err != nil {
+		log.Println("SliceTune error:", err)
+	}
 }
 
 func (rs *RadioState) SetSliceMode(index int, mode string) {
-	rs.FlexClient.SliceSet(fmt.Sprintf("%d", index), flexclient.Object{"mode": mode})
+	_, err := rs.FlexClient.SliceSet(context.Background(), fmt.Sprintf("%d", index), flexclient.Object{"mode": mode})
+	if err != nil {
+		log.Println("SliceSet error:", err)
+	}
 }
 
 func (rs *RadioState) CenterWaterfallAt(freq float64) {
@@ -358,5 +379,8 @@ func (rs *RadioState) CenterWaterfallAt(freq float64) {
 	if wf == nil || pan == nil {
 		return
 	}
-	rs.FlexClient.PanSet(wf["panadapter"], flexclient.Object{"center": fmt.Sprintf("%f", freq)})
+	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"center": fmt.Sprintf("%f", freq)})
+	if err != nil {
+		log.Println("PanSet error:", err)
+	}
 }
