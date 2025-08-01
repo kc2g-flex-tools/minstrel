@@ -129,6 +129,7 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 	wf := &Waterfall{}
 	wf.Widget = widget.NewGraphic(
+		widget.GraphicOpts.Image(ebiten.NewImage(1, 1)),
 		widget.GraphicOpts.WidgetOpts(
 			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
 				now := time.Now()
