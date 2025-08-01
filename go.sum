@@ -46,6 +46,8 @@ github.com/tinne26/badcolor v0.0.0-20240606171339-6b0c9b4d5e38 h1:xk+M654UFnSChH
 github.com/tinne26/badcolor v0.0.0-20240606171339-6b0c9b4d5e38/go.mod h1:9hRV2P3WUhp8uTjcMc41zk3iLq4zUZMvh71grgOcpcs=
 github.com/vimeo/dials v0.17.1 h1:Ui1Lunr0VqJCv7wuznCLqyCu1XiRI0szQxiWWxemODg=
 github.com/vimeo/dials v0.17.1/go.mod h1:Qz5LZL4JKeiAutCuTsDEdpwueyKa6mWGTCJsWrXbFa0=
+gitlab.com/gomidi/midi/v2 v2.2.19 h1:/Ktpf21SIOX61gg8PJ7wYLSsD+dOU1e3z3tlO9OS+Zs=
+gitlab.com/gomidi/midi/v2 v2.2.19/go.mod h1:ENtYaJPOwb2N+y7ihv/L7R4GtWjbknouhIIkMrJ5C0g=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/exp v0.0.0-20250911091902-df9299821621 h1:2id6c1/gto0kaHYyrixvknJ8tUK/Qs5IsmBtrc+FtgU=

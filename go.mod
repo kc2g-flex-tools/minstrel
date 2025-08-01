@@ -11,6 +11,7 @@ require (
 	github.com/kc2g-flex-tools/flexclient v0.9.1
 	github.com/tinne26/badcolor v0.0.0-20240606171339-6b0c9b4d5e38
 	github.com/vimeo/dials v0.17.1
+	gitlab.com/gomidi/midi/v2 v2.2.19
 	golang.org/x/image v0.31.0
 	gopkg.in/hraban/opus.v2 v2.0.0-20230925203106-0188a62cb302
 )

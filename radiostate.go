@@ -18,6 +18,7 @@ import (
 
 	"github.com/kc2g-flex-tools/minstrel/audio"
 	"github.com/kc2g-flex-tools/minstrel/events"
+	"github.com/kc2g-flex-tools/minstrel/midi"
 	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
@@ -67,6 +68,7 @@ type RadioState struct {
 	FlexClient      *flexclient.FlexClient
 	Audio           *audio.Audio
 	EventBus        *events.Bus
+	MIDI            *midi.MIDI
 	ClientID        string
 	WaterfallStream uint32
 	RXAudioStream   uint32
@@ -78,9 +80,10 @@ type RadioState struct {
 	discoveryCancel context.CancelFunc
 }
 
-func NewRadioState(audioCtx *audio.Audio, eventBus *events.Bus, station, profile string) *RadioState {
+func NewRadioState(audioCtx *audio.Audio, midiCtx *midi.MIDI, eventBus *events.Bus, station, profile string) *RadioState {
 	rs := &RadioState{
 		Audio:       audioCtx,
+		MIDI:        midiCtx,
 		EventBus:    eventBus,
 		stationName: station,
 		profileName: profile,
@@ -191,6 +194,7 @@ func (rs *RadioState) Run(ctx context.Context) {
 		log.Fatal(err)
 	}
 	go fc.RunUDP()
+	go rs.MIDI.Run(ctx, rs)
 
 	notif := make(chan struct{}, 1)
 	fc.SetStateNotify(notif)

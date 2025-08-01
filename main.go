@@ -12,6 +12,7 @@ import (
 
 	"github.com/kc2g-flex-tools/minstrel/audio"
 	"github.com/kc2g-flex-tools/minstrel/events"
+	"github.com/kc2g-flex-tools/minstrel/midi"
 	"github.com/kc2g-flex-tools/minstrel/ui"
 )
 
@@ -19,6 +20,7 @@ type Config struct {
 	Station string `dialsdesc:"Station name"`
 	Profile string `dialsdesc:"Global profile to load on startup"`
 	UI      *ui.Config
+	MIDI    *midi.Config
 }
 
 var config *Config
@@ -33,6 +35,7 @@ func defaultConfig() *Config {
 		Station: stationName,
 		Profile: "",
 		UI:      ui.DefaultConfig(),
+		MIDI:    midi.DefaultConfig(),
 	}
 }
 
@@ -56,9 +59,10 @@ func main() {
 
 	// Create audio context
 	audioCtx := audio.NewAudio()
+	midiCtx := midi.NewMIDI(config.MIDI, eventBus)
 
 	// Create RadioState before UI - it now owns discovery
-	rs := NewRadioState(audioCtx, eventBus, config.Station, config.Profile)
+	rs := NewRadioState(audioCtx, midiCtx, eventBus, config.Station, config.Profile)
 
 	// Create UI with event bus
 	u := ui.NewUI(config.UI, eventBus)
