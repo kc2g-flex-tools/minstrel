@@ -63,9 +63,9 @@ func loadFont(name string) (*text.GoTextFaceSource, []variation, []feature) {
 	return source, spec.Variations, spec.Features
 }
 
-var fontCache = make(map[string]text.Face)
+var fontCache = make(map[string]*text.Face)
 
-func (u *UI) Font(name string) text.Face {
+func (u *UI) Font(name string) *text.Face {
 	if font, ok := fontCache[name]; ok {
 		return font
 	}
@@ -88,6 +88,7 @@ func (u *UI) Font(name string) text.Face {
 	for _, feature := range features {
 		face.SetFeature(feature.Tag, feature.Value)
 	}
-	fontCache[name] = face
-	return face
+	var faceInterface text.Face = face
+	fontCache[name] = &faceInterface
+	return &faceInterface
 }

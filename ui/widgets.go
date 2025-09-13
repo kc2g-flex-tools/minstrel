@@ -6,6 +6,7 @@ import (
 	"golang.org/x/image/colornames"
 
 	ebimage "github.com/ebitenui/ebitenui/image"
+	"github.com/ebitenui/ebitenui/utilities/constantutil"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -63,24 +64,25 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string) *widget.List 
 				Padding:           widget.NewInsetsSimple(10),
 			}),
 		)),
-		widget.ListOpts.ScrollContainerOpts(
-			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
-				Idle:     ebimage.NewNineSliceColor(colornames.Dimgray),
-				Disabled: ebimage.NewNineSliceColor(colornames.Dimgray),
-				Mask:     ebimage.NewNineSliceColor(colornames.Dimgray),
-			}),
-		),
-		widget.ListOpts.SliderOpts(
-			// Set the background images/color for the background of the slider track
-			widget.SliderOpts.Images(&widget.SliderTrackImage{
+		widget.ListOpts.ScrollContainerImage(&widget.ScrollContainerImage{
+			Idle:     ebimage.NewNineSliceColor(colornames.Dimgray),
+			Disabled: ebimage.NewNineSliceColor(colornames.Dimgray),
+			Mask:     ebimage.NewNineSliceColor(colornames.Dimgray),
+		}),
+		widget.ListOpts.SliderParams(&widget.SliderParams{
+			TrackImage:    &widget.SliderTrackImage{
 				Idle:  ebimage.NewNineSliceColor(colornames.Dimgray),
 				Hover: ebimage.NewNineSliceColor(colornames.Dimgray),
-			}, sliderImage()),
-			widget.SliderOpts.MinHandleSize(5),
-			// Set how wide the track should be
-			widget.SliderOpts.TrackPadding(widget.NewInsetsSimple(2))),
+			},
+			HandleImage:   sliderImage(),
+			MinHandleSize: constantutil.ConstantToPointer(5),
+			TrackPadding:  widget.NewInsetsSimple(2),
+		}),
+
 		// Hide the horizontal slider
 		widget.ListOpts.HideHorizontalSlider(),
+		// Set initial empty entries
+		widget.ListOpts.Entries([]any{}),
 		// Set the font for the list options
 		widget.ListOpts.EntryFontFace(u.Font(fontName)),
 		// Set the colors for the list
@@ -116,20 +118,28 @@ func (u *UI) MakeText(fontName string, fgColor color.Color, opts ...widget.TextO
 func (u *UI) MakeTextArea(fontName string, fgColor color.Color, bgColor color.Color) *widget.TextArea {
 	return widget.NewTextArea(
 		widget.TextAreaOpts.FontFace(u.Font(fontName)),
-		widget.TextAreaOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.TextAreaOpts.TextPadding(*widget.NewInsetsSimple(4)),
 		widget.TextAreaOpts.FontColor(fgColor),
-		widget.TextAreaOpts.ScrollContainerOpts(
-			widget.ScrollContainerOpts.Image(&widget.ScrollContainerImage{
-				Idle: ebimage.NewNineSliceColor(bgColor),
-				Mask: ebimage.NewNineSliceColor(bgColor),
+		widget.TextAreaOpts.ScrollContainerImage(&widget.ScrollContainerImage{
+			Idle: ebimage.NewNineSliceColor(bgColor),
+			Mask: ebimage.NewNineSliceColor(bgColor),
+		}),
+		widget.TextAreaOpts.SliderParams(&widget.SliderParams{
+			TrackImage: &widget.SliderTrackImage{
+				Idle:  ebimage.NewNineSliceColor(colornames.Dimgray),
+				Hover: ebimage.NewNineSliceColor(colornames.Dimgray),
+			},
+			HandleImage:   sliderImage(),
+			MinHandleSize: constantutil.ConstantToPointer(5),
+			TrackPadding:  widget.NewInsetsSimple(2),
+		}),
+		widget.TextAreaOpts.ContainerOpts(widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchVertical:   true,
+				StretchHorizontal: true,
 			}),
-		),
-		widget.TextAreaOpts.SliderOpts(
-			widget.SliderOpts.Images(
-				&widget.SliderTrackImage{},
-				&widget.ButtonImage{},
-			),
-		),
+		)),
+
 	)
 }
 
@@ -141,12 +151,7 @@ func (u *UI) MakeRoundedRect(fg color.Color, bg color.Color, radius int, opts ..
 	nineslice := ebimage.NewNineSliceSimple(img, radius, 1)
 	opts = append([]widget.ContainerOpt{
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
-			widget.AnchorLayoutOpts.Padding(widget.Insets{
-				Left:   radius,
-				Right:  radius,
-				Top:    0,
-				Bottom: 0,
-			}),
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(radius)),
 		)),
 		widget.ContainerOpts.BackgroundImage(nineslice)},
 		opts...,

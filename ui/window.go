@@ -19,7 +19,7 @@ func (u *UI) MakeWindow(title, titleFont string, content *widget.Container) *Win
 	titleBar := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(color.NRGBA{0xee, 0xee, 0xee, 0xc0})),
 		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
-			widget.AnchorLayoutOpts.Padding(widget.Insets{
+			widget.AnchorLayoutOpts.Padding(&widget.Insets{
 				Left:  4,
 				Right: 4,
 			}),
@@ -88,10 +88,7 @@ func (u *UI) MakeEntryWindow(title, titleFont, prompt, mainFont string, cb func(
 			Idle:     ebimage.NewNineSliceColor(color.NRGBA{0x44, 0x44, 0x44, 0xff}),
 			Disabled: ebimage.NewNineSliceColor(color.NRGBA{0x44, 0x44, 0x44, 0xff}),
 		}),
-		widget.TextInputOpts.CaretOpts(
-			widget.CaretOpts.Color(color.NRGBA{0xee, 0xee, 0xee, 0xff}),
-			widget.CaretOpts.Size(mainFace, 2),
-		),
+
 		widget.TextInputOpts.SubmitHandler(func(args *widget.TextInputChangedEventArgs) {
 			cb(args.InputText, true)
 			window.widget.Close()
@@ -184,8 +181,8 @@ func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []a
 
 func (u *UI) ShowWindow(window *Window) {
 	win := window.widget
-	win.Contents.Update()
-	win.TitleBar.Update()
+	win.Contents.Validate()
+	win.TitleBar.Validate()
 	contentWidth, contentHeight := win.Contents.PreferredSize()
 	tbWidth, tbHeight := win.TitleBar.PreferredSize()
 

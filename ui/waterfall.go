@@ -124,6 +124,7 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 			}
 		}
 	}
+	wf.Container.RequestRelayout()
 }
 
 func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {

@@ -34,7 +34,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	display := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(widget.Insets{Left: 12, Right: 12, Top: 4, Bottom: 4}),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(12)),
 		)),
 	)
 	row1 := widget.NewContainer(
@@ -46,7 +46,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
 	s.Letter = widget.NewText(
 		widget.TextOpts.Text(letter, u.Font("Roboto-Semibold-36"), colornames.Darkslategray),
-		widget.TextOpts.Insets(widget.Insets{}),
+		widget.TextOpts.Padding(widget.NewInsetsSimple(0)),
 	)
 	letterContainer.AddChild(s.Letter)
 	row1.AddChild(letterContainer)
