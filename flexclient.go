@@ -227,6 +227,7 @@ func (rs *RadioState) updateGUI() {
 		out.Index, _ = strconv.Atoi(strings.TrimPrefix(objName, "slice "))
 		out.TuneStep, _ = strconv.ParseFloat(slice["step"], 64)
 		out.TuneStep /= 1e6
+		out.Volume, _ = strconv.Atoi(slice["audio_level"])
 		slices[letter] = &out
 	}
 	rs.mu.Lock()
@@ -269,6 +270,14 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 func (rs *RadioState) playOpus(pkt flexclient.VitaPacket) {
 	data := vita.ParseVitaOpus(pkt.Payload, pkt.Preamble)
 	rs.Audio.Decode(data)
+}
+
+func (rs *RadioState) SetSliceVolume(index int, volume int) {
+	volStr := strconv.Itoa(volume)
+	_, err := rs.FlexClient.SliceSet(context.Background(), fmt.Sprintf("%d", index), flexclient.Object{"audio_level": volStr})
+	if err != nil {
+		log.Println("SliceSet error:", err)
+	}
 }
 
 func (rs *RadioState) ToggleAudio(enable bool) {

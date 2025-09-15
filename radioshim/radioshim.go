@@ -11,6 +11,7 @@ type Shim interface {
 	CenterWaterfallAt(float64)
 	ActivateSlice(int)
 	TuneSliceStep(*SliceData, int)
+	SetSliceVolume(index int, volume int)
 }
 
 type SliceData struct {
@@ -26,4 +27,5 @@ type SliceData struct {
 	FiltHigh      float64
 	FiltLow       float64
 	TuneStep      float64
+	Volume        int
 }
