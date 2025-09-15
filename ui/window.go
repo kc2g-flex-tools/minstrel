@@ -157,6 +157,9 @@ func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []a
 	}
 	list.EntrySelectedEvent.AddHandler(func(e any) {
 		args := e.(*widget.ListEntrySelectedEventArgs)
+		if args.PreviousEntry == nil {
+			return
+		}
 		cb(args.Entry, true)
 		window.widget.Close()
 	})
