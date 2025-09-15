@@ -13,7 +13,7 @@ type Window struct {
 	widget *widget.Window
 }
 
-func (u *UI) MakeWindow(title, titleFont string, content *widget.Container) *Window {
+func (u *UI) MakeWindow(title, titleFont string, content *widget.Container, opts ...widget.WindowOpt) *Window {
 	titleFace := u.Font(titleFont)
 
 	titleBar := widget.NewContainer(
@@ -44,12 +44,16 @@ func (u *UI) MakeWindow(title, titleFont string, content *widget.Container) *Win
 	contentWrapper.AddChild(content)
 
 	tbWidth, tbHeight := titleBar.PreferredSize()
-	window := widget.NewWindow(
-		widget.WindowOpts.TitleBar(titleBar, tbHeight),
-		widget.WindowOpts.Contents(contentWrapper),
-		widget.WindowOpts.Modal(),
-		widget.WindowOpts.MinSize(tbWidth, 0),
+	wOpts := append(
+		[]widget.WindowOpt{
+			widget.WindowOpts.TitleBar(titleBar, tbHeight),
+			widget.WindowOpts.Contents(contentWrapper),
+			widget.WindowOpts.Modal(),
+			widget.WindowOpts.MinSize(tbWidth, 0),
+		},
+		opts...,
 	)
+	window := widget.NewWindow(wOpts...)
 	return &Window{
 		widget: window,
 	}

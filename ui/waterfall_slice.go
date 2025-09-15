@@ -20,6 +20,7 @@ type Slice struct {
 	FootprintLeft  float64
 	FootprintRight float64
 	TuneX          float64
+	VolumeSlider   *widget.Slider // Volume slider property
 }
 
 func (u *UI) MakeSlice(letter string) *Slice {
@@ -53,6 +54,24 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	s.RXAnt = u.MakeText("Roboto-Condensed-24", colornames.Deepskyblue)
 	row1.AddChild(s.RXAnt)
 	s.TXAnt = u.MakeText("Roboto-Condensed-24", colornames.Red)
+
+	// Create the volume slider (hidden by default)
+	s.VolumeSlider = widget.NewSlider(
+		widget.SliderOpts.MinMax(0, 100),
+		widget.SliderOpts.InitialCurrent(100-s.Data.Volume),
+		widget.SliderOpts.Images(u.SliderTrackImage(), u.SliderHandleImage()),
+		widget.SliderOpts.MinHandleSize(5),
+		widget.SliderOpts.TrackPadding(widget.NewInsetsSimple(2)),
+		widget.SliderOpts.Orientation(widget.DirectionVertical),
+		widget.SliderOpts.WidgetOpts(
+			widget.WidgetOpts.MinSize(10, 100),
+		),
+	)
+	s.VolumeSlider.ChangedEvent.AddHandler(func(e interface{}) {
+		args := e.(*widget.SliderChangedEventArgs)
+		u.RadioShim.SetSliceVolume(s.Data.Index, 100-args.Current)
+	})
+
 	row1.AddChild(s.TXAnt)
 	display.AddChild(row1)
 
@@ -100,6 +119,18 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	)
 	buttons.AddChild(u.MakeButton("Icons-16", "\ue5cd", func(*widget.ButtonClickedEventArgs) {}))
 	buttons.AddChild(u.MakeButton("Icons-16", "\ue8b8", func(*widget.ButtonClickedEventArgs) {}))
+	// Speaker icon for volume control
+	buttons.AddChild(u.MakeButton("Icons-16", "", func(_ *widget.ButtonClickedEventArgs) {
+		volContainer := widget.NewContainer(
+			widget.ContainerOpts.Layout(widget.NewRowLayout(
+				widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+				widget.RowLayoutOpts.Spacing(10),
+			)),
+		)
+		volContainer.AddChild(s.VolumeSlider)
+		window := u.MakeWindow("Slice Volume", "Roboto-24", volContainer, widget.WindowOpts.CloseMode(widget.CLICK_OUT))
+		u.ShowWindow(window)
+	}))
 	s.Container.AddChild(buttons)
 
 	return s
@@ -124,5 +155,8 @@ func (w *WaterfallWidgets) UpdateSlices(u *UI) {
 		widg.Mode.Label = slice.Mode
 		widg.RXAnt.Label = slice.RXAnt
 		widg.TXAnt.Label = slice.TXAnt
+		if widg.VolumeSlider != nil {
+			widg.VolumeSlider.Current = 100 - slice.Volume
+		}
 	}
 }

@@ -55,6 +55,21 @@ func (u *UI) MakeToggleButton(fontName string, text string, handler func(*widget
 	)
 }
 
+func (u *UI) SliderTrackImage() *widget.SliderTrackImage {
+	return &widget.SliderTrackImage{
+		Idle:  ebimage.NewNineSliceColor(colornames.Dimgray),
+		Hover: ebimage.NewNineSliceColor(colornames.Dimgray),
+	}
+}
+
+func (u *UI) SliderHandleImage() *widget.ButtonImage {
+	return &widget.ButtonImage{
+		Idle:    ebimage.NewNineSliceColor(colornames.Lightgray),
+		Hover:   ebimage.NewNineSliceColor(colornames.Seashell),
+		Pressed: ebimage.NewNineSliceColor(colornames.Seashell),
+	}
+}
+
 func (u *UI) MakeList(fontName string, labeler func(e any) string) *widget.List {
 	return widget.NewList(
 		widget.ListOpts.ContainerOpts(widget.ContainerOpts.WidgetOpts(
@@ -70,11 +85,8 @@ func (u *UI) MakeList(fontName string, labeler func(e any) string) *widget.List 
 			Mask:     ebimage.NewNineSliceColor(colornames.Dimgray),
 		}),
 		widget.ListOpts.SliderParams(&widget.SliderParams{
-			TrackImage:    &widget.SliderTrackImage{
-				Idle:  ebimage.NewNineSliceColor(colornames.Dimgray),
-				Hover: ebimage.NewNineSliceColor(colornames.Dimgray),
-			},
-			HandleImage:   sliderImage(),
+			TrackImage:    u.SliderTrackImage(),
+			HandleImage:   u.SliderHandleImage(),
 			MinHandleSize: constantutil.ConstantToPointer(5),
 			TrackPadding:  widget.NewInsetsSimple(2),
 		}),
@@ -129,7 +141,7 @@ func (u *UI) MakeTextArea(fontName string, fgColor color.Color, bgColor color.Co
 				Idle:  ebimage.NewNineSliceColor(colornames.Dimgray),
 				Hover: ebimage.NewNineSliceColor(colornames.Dimgray),
 			},
-			HandleImage:   sliderImage(),
+			HandleImage:   u.SliderHandleImage(),
 			MinHandleSize: constantutil.ConstantToPointer(5),
 			TrackPadding:  widget.NewInsetsSimple(2),
 		}),
@@ -139,7 +151,6 @@ func (u *UI) MakeTextArea(fontName string, fgColor color.Color, bgColor color.Co
 				StretchHorizontal: true,
 			}),
 		)),
-
 	)
 }
 
@@ -157,14 +168,6 @@ func (u *UI) MakeRoundedRect(fg color.Color, bg color.Color, radius int, opts ..
 		opts...,
 	)
 	return widget.NewContainer(opts...)
-}
-
-func sliderImage() *widget.ButtonImage {
-	return &widget.ButtonImage{
-		Idle:    ebimage.NewNineSliceColor(colornames.Lightgray),
-		Hover:   ebimage.NewNineSliceColor(colornames.Seashell),
-		Pressed: ebimage.NewNineSliceColor(colornames.Seashell),
-	}
 }
 
 func NewNineSliceBorder(innerColor, borderColor color.Color, borderWidthHeight int) *ebimage.NineSlice {
