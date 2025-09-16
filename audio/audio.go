@@ -56,7 +56,7 @@ func (a *Audio) Decode(data []byte) {
 	if err != nil {
 		log.Println(err)
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if a.cbuf.Size() > a.cbufSize-4 {
 			log.Println("audio cbuf overflow")
 			return
