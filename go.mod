@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/ebitenui/ebitenui v0.7.1
+	github.com/ebitenui/ebitenui v0.7.2
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
 	github.com/hb9fxq/flexlib-go v0.0.0-20201128184122-8acafd8a4e14
 	github.com/jfreymuth/pulse v0.1.1
