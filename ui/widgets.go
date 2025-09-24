@@ -50,6 +50,7 @@ func (u *UI) MakeToggleButton(fontName string, text string, handler func(*widget
 			Disabled:     ebimage.NewNineSliceColor(colornames.Dimgray),
 		}),
 		widget.ButtonOpts.ToggleMode(),
+		widget.ButtonOpts.DisableDefaultKeys(),
 		widget.ButtonOpts.StateChangedHandler(handler),
 		widget.ButtonOpts.WidgetOpts(wopts...),
 	)

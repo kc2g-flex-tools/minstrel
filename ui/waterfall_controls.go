@@ -14,6 +14,7 @@ type WaterfallControls struct {
 	ZoomOut   *widget.Button
 	ZoomIn    *widget.Button
 	Find      *widget.Button
+	MOX       *widget.Button
 }
 
 func (u *UI) MakeWaterfallControls() *WaterfallControls {
@@ -52,12 +53,18 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 	wfc.Find = u.MakeButton("Icons-32", "\uf70c", func(args *widget.ButtonClickedEventArgs) {
 		u.RadioShim.FindActiveSlice()
 	})
+	wfc.MOX = u.MakeToggleButton("Roboto-16", "MOX", func(args *widget.ButtonChangedEventArgs) {
+		if args.OffsetX == -1 {
+			return
+		}
+		u.RadioShim.SetPTT(args.State == widget.WidgetChecked)
+	})
 
 	wfc.Container.AddChild(
 		wfc.Exit,
 		wfc.Shutdown,
 		wfc.Audio,
-		widget.NewContainer(),
+		wfc.MOX,
 		wfc.ZoomOut,
 		wfc.ZoomIn,
 		wfc.Find,

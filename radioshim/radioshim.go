@@ -12,6 +12,7 @@ type Shim interface {
 	ActivateSlice(int)
 	TuneSliceStep(*SliceData, int)
 	SetSliceVolume(index int, volume int)
+	SetPTT(bool)
 }
 
 type SliceData struct {

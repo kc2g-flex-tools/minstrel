@@ -124,6 +124,10 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 			}
 		}
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		u.RadioShim.SetPTT(wf.Controls.MOX.State() != widget.WidgetChecked)
+	}
+
 	wf.Container.RequestRelayout()
 }
 

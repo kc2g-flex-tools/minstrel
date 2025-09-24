@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
 	"github.com/kc2g-flex-tools/minstrel/audio"
@@ -93,6 +94,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 		Prefix:  "stream ",
 		Updates: make(chan flexclient.StateUpdate, 100),
 	})
+	interlock := fc.Subscribe(flexclient.Subscription{
+		Prefix:  "interlock",
+		Updates: make(chan flexclient.StateUpdate, 100),
+	})
 
 	ClientUUID, uuidOK := getClientID()
 	if uuidOK {
@@ -120,6 +125,7 @@ func (rs *RadioState) Run(ctx context.Context) {
 	}
 	fc.SendAndWait("sub radio all")
 	fc.SendAndWait("sub slice all")
+	fc.SendAndWait("sub tx all")
 
 	err := fc.InitUDP()
 	if err != nil {
@@ -181,6 +187,13 @@ func (rs *RadioState) Run(ctx context.Context) {
 					rs.TXAudioStream = uint32(streamId)
 				}
 			}
+		case st := <-interlock.Updates:
+			tx := st.CurrentState["state"] == "TRANSMITTING"
+			state := widget.WidgetUnchecked
+			if tx {
+				state = widget.WidgetChecked
+			}
+			rs.UI.Widgets.WaterfallPage.Controls.MOX.SetState(state)
 		case pkt := <-vita:
 			if pkt.Preamble.Stream_id == rs.WaterfallStream {
 				rs.updateWaterfall(pkt)
@@ -410,4 +423,12 @@ func (rs *RadioState) CenterWaterfallAt(freq float64) {
 	if err != nil {
 		log.Println("PanSet error:", err)
 	}
+}
+
+func (rs *RadioState) SetPTT(enable bool) {
+	xmit := "0"
+	if enable {
+		xmit = "1"
+	}
+	rs.FlexClient.SendCmd(fmt.Sprintf("xmit %s", xmit))
 }
