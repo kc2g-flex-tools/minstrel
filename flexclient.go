@@ -68,6 +68,7 @@ type RadioState struct {
 	ClientID        string
 	WaterfallStream uint32
 	RXAudioStream   uint32
+	TXAudioStream   uint32
 	WFState         WFState
 	Slices          map[string]*radioshim.SliceData
 }
@@ -166,8 +167,18 @@ func (rs *RadioState) Run(ctx context.Context) {
 				if err != nil {
 					log.Println(err)
 				} else {
-					log.Println("got opus stream", streamStr)
+					log.Println("got opus RX stream", streamStr)
 					rs.RXAudioStream = uint32(streamId)
+				}
+			}
+			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_tx" && st.CurrentState["compression"] == "OPUS" {
+				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
+				streamId, err := strconv.ParseUint(streamStr, 16, 32)
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Println("got opus TX stream", streamStr)
+					rs.TXAudioStream = uint32(streamId)
 				}
 			}
 		case pkt := <-vita:
@@ -283,11 +294,18 @@ func (rs *RadioState) SetSliceVolume(index int, volume int) {
 func (rs *RadioState) ToggleAudio(enable bool) {
 	if enable {
 		rs.FlexClient.SendCmd("stream create type=remote_audio_rx compression=opus")
+		rs.FlexClient.SendCmd("stream create type=remote_audio_tx compression=opus")
 		rs.Audio.Start()
+		rs.Audio.StartTX(rs.FlexClient, &rs.TXAudioStream)
 	} else {
 		rs.FlexClient.SendCmd(fmt.Sprintf("stream remove 0x%08x", rs.RXAudioStream))
 		rs.RXAudioStream = 0
+		if rs.TXAudioStream != 0 {
+			rs.FlexClient.SendCmd(fmt.Sprintf("stream remove 0x%08x", rs.TXAudioStream))
+			rs.TXAudioStream = 0
+		}
 		rs.Audio.Pause()
+		rs.Audio.StopTX()
 	}
 }
 
