@@ -9,7 +9,6 @@ import (
 type WaterfallControls struct {
 	Container *widget.Container
 	Exit      *widget.Button
-	Shutdown  *widget.Button
 	Audio     *widget.Button
 	ZoomOut   *widget.Button
 	ZoomIn    *widget.Button
@@ -35,12 +34,15 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 			),
 		),
 	)
-	wfc.Exit = u.MakeButton("Icons-32", "\ue9ba", func(args *widget.ButtonClickedEventArgs) {
-		u.exit = true
-	})
-	wfc.Shutdown = u.MakeButton("Icons-32", "\ue8ac", func(args *widget.ButtonClickedEventArgs) {
-		exec.Command("systemctl", "poweroff").Run()
-	})
+	if u.cfg.Kiosk {
+		wfc.Exit = u.MakeButton("Icons-32", "\ue8ac", func(args *widget.ButtonClickedEventArgs) {
+			exec.Command("systemctl", "poweroff").Run()
+		})
+	} else {
+		wfc.Exit = u.MakeButton("Icons-32", "\ue9ba", func(args *widget.ButtonClickedEventArgs) {
+			u.exit = true
+		})
+	}
 	wfc.Audio = u.MakeToggleButton("Icons-32", "\ue050", func(args *widget.ButtonChangedEventArgs) {
 		u.RadioShim.ToggleAudio(args.State == widget.WidgetChecked)
 	})
@@ -62,7 +64,6 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 
 	wfc.Container.AddChild(
 		wfc.Exit,
-		wfc.Shutdown,
 		wfc.Audio,
 		wfc.MOX,
 		wfc.ZoomOut,

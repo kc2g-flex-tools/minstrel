@@ -32,6 +32,18 @@ type callbacks struct {
 	Connect func(string)
 }
 
+type Config struct {
+	Touch bool `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
+	FPS   int  `dialsdesc:"Framerate" dialsflag:"fps"`
+	Kiosk bool `dialsdesc:"Kiosk mode (fullscreen, I own the machine)" dialsflag:"kiosk"`
+}
+
+func DefaultConfig() *Config {
+	return &Config{
+		FPS: 30,
+	}
+}
+
 type UI struct {
 	mu        sync.RWMutex
 	update    bool
@@ -46,18 +58,7 @@ type UI struct {
 	Callbacks callbacks
 	RadioShim radioshim.Shim
 	deferred  []func()
-}
-
-type Config struct {
-	Touch      bool `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
-	FPS        int  `dialsdesc:"Framerate" dialsflag:"fps"`
-	Fullscreen bool `dialsdesc:"Start in fullscreen"`
-}
-
-func DefaultConfig() *Config {
-	return &Config{
-		FPS: 30,
-	}
+	cfg       *Config
 }
 
 func NewUI(cfg *Config) *UI {
@@ -77,6 +78,7 @@ func NewUI(cfg *Config) *UI {
 		Widgets: widgets{
 			Root: rootContainer,
 		},
+		cfg: cfg,
 	}
 	u.MakeLayout()
 	u.Widgets.Radios = u.MakeRadiosPage()
@@ -92,7 +94,7 @@ func NewUI(cfg *Config) *UI {
 	if cfg.Touch {
 		ebiten.SetCursorMode(ebiten.CursorModeHidden)
 	}
-	if cfg.Fullscreen {
+	if cfg.Kiosk {
 		ebiten.SetFullscreen(true)
 	}
 	return u
