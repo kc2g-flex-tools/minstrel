@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/kc2g-flex-tools/minstrel/assets"
@@ -35,11 +36,11 @@ var fontFiles = map[string]fontspec{
 	"Icons-Filled":           fontspec{Filename: "MaterialSymbolsSharp_Filled-Regular.ttf"},
 }
 
-var sources = make(map[string]*text.GoTextFaceSource)
+var sources sync.Map // map[string]*text.GoTextFaceSource
 
 func loadFontSource(filename string) *text.GoTextFaceSource {
-	if source, ok := sources[filename]; ok {
-		return source
+	if cached, ok := sources.Load(filename); ok {
+		return cached.(*text.GoTextFaceSource)
 	}
 	file, err := assets.Assets.Open("fonts/" + filename)
 	if err != nil {
@@ -49,7 +50,7 @@ func loadFontSource(filename string) *text.GoTextFaceSource {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sources[filename] = source
+	sources.Store(filename, source)
 	return source
 }
 
@@ -63,11 +64,11 @@ func loadFont(name string) (*text.GoTextFaceSource, []variation, []feature) {
 	return source, spec.Variations, spec.Features
 }
 
-var fontCache = make(map[string]*text.Face)
+var fontCache sync.Map // map[string]*text.Face
 
 func (u *UI) Font(name string) *text.Face {
-	if font, ok := fontCache[name]; ok {
-		return font
+	if cached, ok := fontCache.Load(name); ok {
+		return cached.(*text.Face)
 	}
 
 	idx := strings.LastIndex(name, "-")
@@ -89,6 +90,6 @@ func (u *UI) Font(name string) *text.Face {
 		face.SetFeature(feature.Tag, feature.Value)
 	}
 	var faceInterface text.Face = face
-	fontCache[name] = &faceInterface
+	fontCache.Store(name, &faceInterface)
 	return &faceInterface
 }
