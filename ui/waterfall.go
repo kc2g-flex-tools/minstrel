@@ -106,7 +106,6 @@ func (u *UI) ShowWaterfall() {
 }
 
 func (wf *WaterfallWidgets) Update(u *UI) {
-	wf.UpdateSlices(u)
 	wf.Waterfall.Update(u)
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		for _, slice := range wf.Slices {

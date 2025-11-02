@@ -12,6 +12,7 @@ import (
 	"github.com/vimeo/dials/sources/flag"
 
 	"github.com/kc2g-flex-tools/minstrel/audio"
+	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/ui"
 )
 
@@ -49,6 +50,10 @@ func main() {
 	u := ui.NewUI(config.UI)
 	audio := audio.NewAudio()
 
+	// Create event bus and start UI event handler
+	eventBus := events.NewBus()
+	go u.HandleEvents(eventBus.Subscribe(100))
+
 	discoveryCtx, discoveryCancel := context.WithCancel(mainCtx)
 
 	discoverChan := make(chan []map[string]string, 1)
@@ -80,7 +85,7 @@ func main() {
 			fc.Run()
 			log.Fatal("flexclient exited")
 		}()
-		rs = NewRadioState(fc, u, audio)
+		rs = NewRadioState(fc, u, audio, eventBus)
 		go rs.Run(mainCtx)
 		u.ShowWaterfall()
 	}

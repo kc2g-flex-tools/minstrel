@@ -136,8 +136,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	return s
 }
 
-func (w *WaterfallWidgets) UpdateSlices(u *UI) {
-	slices := u.RadioShim.GetSlices()
+func (w *WaterfallWidgets) UpdateSlices(slices map[string]*radioshim.SliceData) {
 	for _, letter := range []string{"A", "B"} {
 		slice := slices[letter]
 		if slice == nil {

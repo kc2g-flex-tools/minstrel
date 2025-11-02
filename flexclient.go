@@ -13,10 +13,11 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
+
 	"github.com/kc2g-flex-tools/minstrel/audio"
+	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 	"github.com/kc2g-flex-tools/minstrel/ui"
 )
@@ -64,8 +65,8 @@ type WFState struct {
 type RadioState struct {
 	mu              sync.RWMutex
 	FlexClient      *flexclient.FlexClient
-	UI              *ui.UI
 	Audio           *audio.Audio
+	EventBus        *events.Bus
 	ClientID        string
 	WaterfallStream uint32
 	RXAudioStream   uint32
@@ -74,11 +75,11 @@ type RadioState struct {
 	Slices          map[string]*radioshim.SliceData
 }
 
-func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio) *RadioState {
+func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio, eventBus *events.Bus) *RadioState {
 	rs := &RadioState{
 		FlexClient: fc,
-		UI:         u,
 		Audio:      audioCtx,
+		EventBus:   eventBus,
 	}
 	u.RadioShim = rs
 	return rs
@@ -162,8 +163,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 					}
 					center, _ := strconv.ParseFloat(st.CurrentState["center"], 64)
 					span, _ := strconv.ParseFloat(st.CurrentState["bandwidth"], 64)
-					rs.UI.Widgets.WaterfallPage.Waterfall.DispLow = center - span/2
-					rs.UI.Widgets.WaterfallPage.Waterfall.DispHigh = center + span/2
+					rs.EventBus.Publish(events.WaterfallDisplayRangeChanged{
+						Low:  center - span/2,
+						High: center + span/2,
+					})
 				}
 			}
 		case st := <-streams.Updates:
@@ -189,11 +192,9 @@ func (rs *RadioState) Run(ctx context.Context) {
 			}
 		case st := <-interlock.Updates:
 			tx := st.CurrentState["state"] == "TRANSMITTING"
-			state := widget.WidgetUnchecked
-			if tx {
-				state = widget.WidgetChecked
-			}
-			rs.UI.Widgets.WaterfallPage.Controls.MOX.SetState(state)
+			rs.EventBus.Publish(events.TransmitStateChanged{
+				Transmitting: tx,
+			})
 		case pkt := <-vita:
 			if pkt.Preamble.Stream_id == rs.WaterfallStream {
 				rs.updateWaterfall(pkt)
@@ -255,14 +256,21 @@ func (rs *RadioState) updateGUI() {
 		slices[letter] = &out
 	}
 	rs.mu.Lock()
-	defer rs.mu.Unlock()
 	rs.Slices = slices
+	rs.mu.Unlock()
+
+	// Publish event with slice data
+	rs.EventBus.Publish(events.SlicesUpdated{
+		Slices: slices,
+	})
 }
 
 func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	data := vita.ParseVitaWaterfall(pkt.Payload, pkt.Preamble)
 	if data.TotalBinsInFrame != rs.WFState.width {
-		rs.UI.Widgets.WaterfallPage.Waterfall.SetBins(data.TotalBinsInFrame)
+		rs.EventBus.Publish(events.WaterfallBinsConfigured{
+			Width: data.TotalBinsInFrame,
+		})
 		rs.WFState.width = data.TotalBinsInFrame
 		rs.WFState.bins = make([]uint16, data.TotalBinsInFrame)
 	}
@@ -285,9 +293,14 @@ func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	rs.WFState.binsFilled += data.Width
 
 	if rs.WFState.binsFilled == rs.WFState.width {
-		rs.UI.Widgets.WaterfallPage.Waterfall.DataLow = rs.WFState.dataLow
-		rs.UI.Widgets.WaterfallPage.Waterfall.DataHigh = rs.WFState.dataHigh
-		rs.UI.Widgets.WaterfallPage.Waterfall.AddRow(rs.WFState.bins, data.AutoBlackLevel)
+		rs.EventBus.Publish(events.WaterfallDataRangeChanged{
+			Low:  rs.WFState.dataLow,
+			High: rs.WFState.dataHigh,
+		})
+		rs.EventBus.Publish(events.WaterfallRowReceived{
+			Bins:       rs.WFState.bins,
+			BlackLevel: data.AutoBlackLevel,
+		})
 	}
 }
 

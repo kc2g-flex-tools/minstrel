@@ -11,6 +11,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+
+	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
@@ -153,4 +155,49 @@ func (u *UI) Defer(cb func()) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.deferred = append(u.deferred, cb)
+}
+
+// HandleEvents processes events from the event bus and updates the UI
+func (u *UI) HandleEvents(eventChan chan events.Event) {
+	for event := range eventChan {
+		switch e := event.(type) {
+		case events.TransmitStateChanged:
+			u.Defer(func() {
+				state := widget.WidgetUnchecked
+				if e.Transmitting {
+					state = widget.WidgetChecked
+				}
+				u.Widgets.WaterfallPage.Controls.MOX.SetState(state)
+			})
+
+		case events.SlicesUpdated:
+			u.Defer(func() {
+				u.Widgets.WaterfallPage.UpdateSlices(e.Slices)
+			})
+
+		case events.WaterfallDisplayRangeChanged:
+			u.Defer(func() {
+				wf := u.Widgets.WaterfallPage.Waterfall
+				wf.DispLow = e.Low
+				wf.DispHigh = e.High
+			})
+
+		case events.WaterfallBinsConfigured:
+			u.Defer(func() {
+				u.Widgets.WaterfallPage.Waterfall.SetBins(e.Width)
+			})
+
+		case events.WaterfallDataRangeChanged:
+			u.Defer(func() {
+				wf := u.Widgets.WaterfallPage.Waterfall
+				wf.DataLow = e.Low
+				wf.DataHigh = e.High
+			})
+
+		case events.WaterfallRowReceived:
+			u.Defer(func() {
+				u.Widgets.WaterfallPage.Waterfall.AddRow(e.Bins, e.BlackLevel)
+			})
+		}
+	}
 }
