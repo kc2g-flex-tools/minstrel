@@ -30,10 +30,6 @@ type widgets struct {
 	WaterfallPage *WaterfallWidgets
 }
 
-type callbacks struct {
-	Connect func(string)
-}
-
 type Config struct {
 	Touch bool `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
 	FPS   int  `dialsdesc:"Framerate" dialsflag:"fps"`
@@ -57,13 +53,13 @@ type UI struct {
 	radios    []map[string]string
 	eui       *ebitenui.UI
 	Widgets   widgets
-	Callbacks callbacks
 	RadioShim radioshim.Shim
 	deferred  []func()
 	cfg       *Config
+	eventBus  *events.Bus
 }
 
-func NewUI(cfg *Config) *UI {
+func NewUI(cfg *Config, eventBus *events.Bus) *UI {
 	rootContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{0x12, 0x23, 0x34, 0xff})),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -73,14 +69,15 @@ func NewUI(cfg *Config) *UI {
 	)
 
 	u := &UI{
-		state: DiscoveryState,
+		state:    DiscoveryState,
 		eui: &ebitenui.UI{
 			Container: rootContainer,
 		},
 		Widgets: widgets{
 			Root: rootContainer,
 		},
-		cfg: cfg,
+		cfg:      cfg,
+		eventBus: eventBus,
 	}
 	u.MakeLayout()
 	u.Widgets.Radios = u.MakeRadiosPage()
@@ -161,6 +158,16 @@ func (u *UI) Defer(cb func()) {
 func (u *UI) HandleEvents(eventChan chan events.Event) {
 	for event := range eventChan {
 		switch e := event.(type) {
+		case events.RadiosDiscovered:
+			u.Defer(func() {
+				u.SetRadios(e.Radios)
+			})
+
+		case events.RadioConnected:
+			u.Defer(func() {
+				u.ShowWaterfall()
+			})
+
 		case events.TransmitStateChanged:
 			u.Defer(func() {
 				state := widget.WidgetUnchecked

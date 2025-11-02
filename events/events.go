@@ -60,6 +60,29 @@ type StreamEstablished struct {
 	StreamID uint32
 }
 
+// RadiosDiscovered is fired when radios are discovered on the network
+type RadiosDiscovered struct {
+	baseEvent
+	Radios []map[string]string
+}
+
+// RadioSelected is fired when the user selects a radio to connect to
+type RadioSelected struct {
+	baseEvent
+	Address string // IP:port format
+}
+
+// RadioConnected is fired when connection to radio is established
+type RadioConnected struct {
+	baseEvent
+}
+
+// RadioDisconnected is fired when connection to radio is lost
+type RadioDisconnected struct {
+	baseEvent
+	Error string
+}
+
 // Bus provides simple event publish/subscribe
 type Bus struct {
 	subscribers []chan Event

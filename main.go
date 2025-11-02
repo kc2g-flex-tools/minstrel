@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/kc2g-flex-tools/flexclient"
 	"github.com/vimeo/dials"
 	"github.com/vimeo/dials/sources/env"
 	"github.com/vimeo/dials/sources/flag"
@@ -47,48 +45,38 @@ func main() {
 	}
 	config = d.View()
 
-	u := ui.NewUI(config.UI)
-	audio := audio.NewAudio()
-
-	// Create event bus and start UI event handler
+	// Create event bus
 	eventBus := events.NewBus()
+
+	// Create audio context
+	audioCtx := audio.NewAudio()
+
+	// Create RadioState before UI - it now owns discovery
+	rs := NewRadioState(audioCtx, eventBus, config.Station, config.Profile)
+
+	// Create UI with event bus
+	u := ui.NewUI(config.UI, eventBus)
+	u.RadioShim = rs
+
+	// Start UI event handler
 	go u.HandleEvents(eventBus.Subscribe(100))
 
-	discoveryCtx, discoveryCancel := context.WithCancel(mainCtx)
-
-	discoverChan := make(chan []map[string]string, 1)
+	// Start RadioState event handler for connection requests
 	go func() {
-		log.Println("start discovery")
-		err := flexclient.DiscoverAll(discoveryCtx, 10*time.Second, discoverChan)
-		log.Println("finished discovery")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-	go func() {
-		for data := range discoverChan {
-			u.SetRadios(data)
+		eventChan := eventBus.Subscribe(10)
+		for event := range eventChan {
+			switch e := event.(type) {
+			case events.RadioSelected:
+				if err := rs.ConnectToRadio(mainCtx, e.Address); err != nil {
+					log.Println("Connection error:", err)
+					// TODO: show error in UI
+				}
+			}
 		}
 	}()
 
-	var rs *RadioState
-
-	// TODO: initialize the RadioState before connect, give it control over discovery,
-	// and use RadioShim as the callback mechanism, and delete Callbacks
-	u.Callbacks.Connect = func(dst string) {
-		discoveryCancel()
-		fc, err := flexclient.NewFlexClient(dst)
-		if err != nil {
-			panic(err) // TODO: errors in the UI
-		}
-		go func() {
-			fc.Run()
-			log.Fatal("flexclient exited")
-		}()
-		rs = NewRadioState(fc, u, audio, eventBus)
-		go rs.Run(mainCtx)
-		u.ShowWaterfall()
-	}
+	// Start radio discovery
+	rs.StartDiscovery(mainCtx)
 
 	if err := ebiten.RunGame(u); err != nil {
 		log.Fatal(err)

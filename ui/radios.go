@@ -5,6 +5,8 @@ import (
 	"os/exec"
 
 	"github.com/ebitenui/ebitenui/widget"
+
+	"github.com/kc2g-flex-tools/minstrel/events"
 )
 
 type radioProps = map[string]string
@@ -32,14 +34,12 @@ func (u *UI) MakeRadiosPage() *RadiosPage {
 	radios.List.EntrySelectedEvent.AddHandler(
 		func(e any) {
 			event := e.(*widget.ListEntrySelectedEventArgs)
-			cb := u.Callbacks.Connect
-			if cb == nil {
-				return
-			}
 			switch entry := event.Entry.(type) {
 			case *radioProps:
 				radio := *entry
-				cb(radio["ip"] + ":" + radio["port"])
+				u.eventBus.Publish(events.RadioSelected{
+					Address: radio["ip"] + ":" + radio["port"],
+				})
 			case string:
 				switch entry {
 				case "Exit":
@@ -50,7 +50,9 @@ func (u *UI) MakeRadiosPage() *RadiosPage {
 					u.ShowWindow(
 						u.MakeEntryWindow("Enter IP", "Roboto-24", "Enter an IP[:port] to connect to a radio", "Roboto-24", func(ip string, ok bool) {
 							if ok {
-								u.Callbacks.Connect(ip)
+								u.eventBus.Publish(events.RadioSelected{
+									Address: ip,
+								})
 							}
 						}),
 					)
@@ -65,9 +67,9 @@ func (u *UI) MakeRadiosPage() *RadiosPage {
 	return radios
 }
 
+// SetRadios updates the radio list in the UI.
+// NOTE: Must be called from deferred queue (via u.Defer) to ensure thread safety.
 func (u *UI) SetRadios(radios []radioProps) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.radios = radios
 	entries := make([]any, len(radios))
 	for i := range radios {

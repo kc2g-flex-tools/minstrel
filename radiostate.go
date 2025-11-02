@@ -20,7 +20,6 @@ import (
 	"github.com/kc2g-flex-tools/minstrel/audio"
 	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
-	"github.com/kc2g-flex-tools/minstrel/ui"
 )
 
 func getClientID() (string, bool) {
@@ -74,16 +73,70 @@ type RadioState struct {
 	TXAudioStream   uint32
 	WFState         WFState
 	Slices          map[string]*radioshim.SliceData
+	stationName     string
+	profileName     string
+	discoveryCancel context.CancelFunc
 }
 
-func NewRadioState(fc *flexclient.FlexClient, u *ui.UI, audioCtx *audio.Audio, eventBus *events.Bus) *RadioState {
+func NewRadioState(audioCtx *audio.Audio, eventBus *events.Bus, station, profile string) *RadioState {
 	rs := &RadioState{
-		FlexClient: fc,
-		Audio:      audioCtx,
-		EventBus:   eventBus,
+		Audio:       audioCtx,
+		EventBus:    eventBus,
+		stationName: station,
+		profileName: profile,
 	}
-	u.RadioShim = rs
 	return rs
+}
+
+// StartDiscovery begins discovering radios on the network
+func (rs *RadioState) StartDiscovery(ctx context.Context) {
+	discoveryCtx, cancel := context.WithCancel(ctx)
+	rs.discoveryCancel = cancel
+
+	discoverChan := make(chan []map[string]string, 1)
+	go func() {
+		log.Println("start discovery")
+		err := flexclient.DiscoverAll(discoveryCtx, 10*time.Second, discoverChan)
+		log.Println("finished discovery")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+	go func() {
+		for data := range discoverChan {
+			rs.EventBus.Publish(events.RadiosDiscovered{
+				Radios: data,
+			})
+		}
+	}()
+}
+
+// ConnectToRadio establishes connection to a radio at the given address
+func (rs *RadioState) ConnectToRadio(ctx context.Context, address string) error {
+	// Cancel discovery if running
+	if rs.discoveryCancel != nil {
+		rs.discoveryCancel()
+	}
+
+	fc, err := flexclient.NewFlexClient(address)
+	if err != nil {
+		return err
+	}
+
+	rs.FlexClient = fc
+
+	go func() {
+		fc.Run()
+		rs.EventBus.Publish(events.RadioDisconnected{
+			Error: "flexclient exited",
+		})
+		log.Fatal("flexclient exited")
+	}()
+
+	rs.EventBus.Publish(events.RadioConnected{})
+	go rs.Run(ctx)
+
+	return nil
 }
 
 func (rs *RadioState) Run(ctx context.Context) {
@@ -120,10 +173,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 	rs.ClientID = "0x" + fc.ClientID()
 
 	fc.SendAndWait("client program Minstrel")
-	fc.SendAndWait("client station " + strings.ReplaceAll(config.Station, " ", "\x7f"))
+	fc.SendAndWait("client station " + strings.ReplaceAll(rs.stationName, " ", "\x7f"))
 
-	if config.Profile != "" {
-		fc.SendAndWait("profile global load " + config.Profile)
+	if rs.profileName != "" {
+		fc.SendAndWait("profile global load " + rs.profileName)
 	}
 	fc.SendAndWait("sub radio all")
 	fc.SendAndWait("sub slice all")
