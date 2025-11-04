@@ -14,6 +14,7 @@ import (
 	"github.com/kc2g-flex-tools/flexclient"
 
 	"github.com/kc2g-flex-tools/minstrel/events"
+	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
@@ -50,20 +51,19 @@ func (rs *RadioState) updateGUI() {
 		}
 		letter := slice["index_letter"]
 		out := radioshim.SliceData{Present: slice["in_use"] != "0"}
-		var err error
-		out.Freq, err = strconv.ParseFloat(slice["RF_frequency"], 64)
-		out.FreqFormatted = formatFreq(out.Freq, err)
+		out.Freq = errutil.MustParseFloat(slice["RF_frequency"], "slice RF_frequency")
+		out.FreqFormatted = formatFreq(out.Freq, nil)
 		out.Mode = slice["mode"]
 		out.Modes = strings.Split(slice["mode_list"], ",")
 		out.RXAnt = slice["rxant"]
 		out.TXAnt = slice["txant"]
 		out.Active = slice["active"] != "0"
-		out.FiltLow, _ = strconv.ParseFloat(slice["filter_lo"], 64)
-		out.FiltHigh, _ = strconv.ParseFloat(slice["filter_hi"], 64)
-		out.Index, _ = strconv.Atoi(strings.TrimPrefix(objName, "slice "))
-		out.TuneStep, _ = strconv.ParseFloat(slice["step"], 64)
+		out.FiltLow = errutil.MustParseFloat(slice["filter_lo"], "slice filter_lo")
+		out.FiltHigh = errutil.MustParseFloat(slice["filter_hi"], "slice filter_hi")
+		out.Index = errutil.MustParseInt(strings.TrimPrefix(objName, "slice "), "slice index")
+		out.TuneStep = errutil.MustParseFloat(slice["step"], "slice step")
 		out.TuneStep /= 1e6
-		out.Volume, _ = strconv.Atoi(slice["audio_level"])
+		out.Volume = errutil.MustParseInt(slice["audio_level"], "slice audio_level")
 		slices[letter] = &out
 	}
 	rs.mu.Lock()

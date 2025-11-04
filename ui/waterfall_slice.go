@@ -2,9 +2,9 @@ package ui
 
 import (
 	"image/color"
-	"strconv"
 
 	"github.com/ebitenui/ebitenui/widget"
+	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 	"golang.org/x/image/colornames"
 )
@@ -85,7 +85,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	s.Frequency.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
 		u.ShowWindow(
 			u.MakeEntryWindow("Enter frequency", "Roboto-24", "", "Roboto-24", func(freqStr string, ok bool) {
-				freq, _ := strconv.ParseFloat(freqStr, 64)
+				freq := errutil.MustParseFloat(freqStr, "frequency entry")
 				u.RadioShim.TuneSlice(s.Data, freq, false)
 			}),
 		)

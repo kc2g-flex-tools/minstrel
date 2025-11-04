@@ -2,12 +2,12 @@ package ui
 
 import (
 	"log"
-	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/kc2g-flex-tools/minstrel/assets"
+	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 )
 
 type variation struct {
@@ -76,9 +76,9 @@ func (u *UI) Font(name string) *text.Face {
 		log.Fatalf("invalid font spec %q: no size", name)
 	}
 	fontName := name[:idx]
-	size, err := strconv.ParseFloat(name[idx+1:], 64)
-	if err != nil {
-		log.Fatalf("invalid font spec %q: %s parsing size", name, err)
+	size := errutil.MustParseFloat(name[idx+1:], "font spec "+name)
+	if size == 0 {
+		log.Fatalf("invalid font spec %q: size must be non-zero", name)
 	}
 
 	source, variations, features := loadFont(fontName)

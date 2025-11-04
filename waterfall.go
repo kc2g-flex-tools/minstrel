@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
 
 	"github.com/kc2g-flex-tools/minstrel/events"
+	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 )
 
 func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
@@ -74,8 +74,8 @@ func (rs *RadioState) ZoomIn() {
 	if wf == nil || pan == nil {
 		return
 	}
-	bw, _ := strconv.ParseFloat(pan["bandwidth"], 64)
-	minBw, _ := strconv.ParseFloat(pan["min_bw"], 64)
+	bw := errutil.MustParseFloat(pan["bandwidth"], "pan bandwidth")
+	minBw := errutil.MustParseFloat(pan["min_bw"], "pan min_bw")
 	bw = max(bw/2, minBw)
 	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
 	if err != nil {
@@ -88,8 +88,8 @@ func (rs *RadioState) ZoomOut() {
 	if wf == nil || pan == nil {
 		return
 	}
-	bw, _ := strconv.ParseFloat(pan["bandwidth"], 64)
-	maxBw, _ := strconv.ParseFloat(pan["max_bw"], 64)
+	bw := errutil.MustParseFloat(pan["bandwidth"], "pan bandwidth")
+	maxBw := errutil.MustParseFloat(pan["max_bw"], "pan max_bw")
 	bw = min(bw*2, maxBw)
 	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
 	if err != nil {

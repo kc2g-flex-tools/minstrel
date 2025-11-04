@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/kc2g-flex-tools/minstrel/audio"
 	"github.com/kc2g-flex-tools/minstrel/events"
+	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
@@ -202,21 +202,19 @@ func (rs *RadioState) Run(ctx context.Context) {
 		case st := <-waterfalls.Updates:
 			if st.CurrentState["client_handle"] == rs.ClientID {
 				streamStr := strings.TrimPrefix(st.Object, "display waterfall 0x")
-				streamId, err := strconv.ParseUint(streamStr, 16, 32)
-				if err != nil {
-					log.Println(err)
-				} else {
+				streamId := errutil.MustParseUint32(streamStr, 16, "waterfall stream ID")
+				if streamId != 0 {
 					if rs.WaterfallStream == 0 {
 						log.Println("my waterfall is", streamStr)
-						rs.WaterfallStream = uint32(streamId)
+						rs.WaterfallStream = streamId
 						wf, _ := rs.getWaterfallAndPan()
 						_, err := fc.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"xpixels": "1000"})
 						if err != nil {
 							log.Println("PanSet error:", err)
 						}
 					}
-					center, _ := strconv.ParseFloat(st.CurrentState["center"], 64)
-					span, _ := strconv.ParseFloat(st.CurrentState["bandwidth"], 64)
+					center := errutil.MustParseFloat(st.CurrentState["center"], "waterfall center")
+					span := errutil.MustParseFloat(st.CurrentState["bandwidth"], "waterfall bandwidth")
 					rs.EventBus.Publish(events.WaterfallDisplayRangeChanged{
 						Low:  center - span/2,
 						High: center + span/2,
@@ -226,22 +224,18 @@ func (rs *RadioState) Run(ctx context.Context) {
 		case st := <-streams.Updates:
 			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_rx" && st.CurrentState["compression"] == "OPUS" {
 				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
-				streamId, err := strconv.ParseUint(streamStr, 16, 32)
-				if err != nil {
-					log.Println(err)
-				} else {
+				streamId := errutil.MustParseUint32(streamStr, 16, "RX audio stream ID")
+				if streamId != 0 {
 					log.Println("got opus RX stream", streamStr)
-					rs.RXAudioStream = uint32(streamId)
+					rs.RXAudioStream = streamId
 				}
 			}
 			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_tx" && st.CurrentState["compression"] == "OPUS" {
 				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
-				streamId, err := strconv.ParseUint(streamStr, 16, 32)
-				if err != nil {
-					log.Println(err)
-				} else {
+				streamId := errutil.MustParseUint32(streamStr, 16, "TX audio stream ID")
+				if streamId != 0 {
 					log.Println("got opus TX stream", streamStr)
-					rs.TXAudioStream = uint32(streamId)
+					rs.TXAudioStream = streamId
 				}
 			}
 		case st := <-interlock.Updates:
