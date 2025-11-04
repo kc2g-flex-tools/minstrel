@@ -8,6 +8,8 @@ type Shim interface {
 	GetSlices() map[string]*SliceData
 	TuneSlice(*SliceData, float64, bool)
 	SetSliceMode(int, string)
+	SetSliceRXAnt(int, string)
+	SetSliceTXAnt(int, string)
 	CenterWaterfallAt(float64)
 	ActivateSlice(int)
 	TuneSliceStep(*SliceData, int)
@@ -25,6 +27,8 @@ type SliceData struct {
 	Modes         []string
 	RXAnt         string
 	TXAnt         string
+	RXAntList     []string
+	TXAntList     []string
 	FiltHigh      float64
 	FiltLow       float64
 	TuneStep      float64

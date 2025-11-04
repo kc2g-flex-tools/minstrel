@@ -57,6 +57,12 @@ func (rs *RadioState) updateGUI() {
 		out.Modes = strings.Split(slice["mode_list"], ",")
 		out.RXAnt = slice["rxant"]
 		out.TXAnt = slice["txant"]
+		if antList := slice["ant_list"]; antList != "" {
+			out.RXAntList = strings.Split(antList, ",")
+		}
+		if txAntList := slice["tx_ant_list"]; txAntList != "" {
+			out.TXAntList = strings.Split(txAntList, ",")
+		}
 		out.Active = slice["active"] != "0"
 		out.FiltLow = errutil.MustParseFloat(slice["filter_lo"], "slice filter_lo")
 		out.FiltHigh = errutil.MustParseFloat(slice["filter_hi"], "slice filter_hi")
@@ -112,6 +118,20 @@ func (rs *RadioState) TuneSliceStep(data *radioshim.SliceData, steps int) {
 
 func (rs *RadioState) SetSliceMode(index int, mode string) {
 	_, err := rs.FlexClient.SliceSet(context.Background(), fmt.Sprintf("%d", index), flexclient.Object{"mode": mode})
+	if err != nil {
+		log.Println("SliceSet error:", err)
+	}
+}
+
+func (rs *RadioState) SetSliceRXAnt(index int, rxant string) {
+	_, err := rs.FlexClient.SliceSet(context.Background(), fmt.Sprintf("%d", index), flexclient.Object{"rxant": rxant})
+	if err != nil {
+		log.Println("SliceSet error:", err)
+	}
+}
+
+func (rs *RadioState) SetSliceTXAnt(index int, txant string) {
+	_, err := rs.FlexClient.SliceSet(context.Background(), fmt.Sprintf("%d", index), flexclient.Object{"txant": txant})
 	if err != nil {
 		log.Println("SliceSet error:", err)
 	}

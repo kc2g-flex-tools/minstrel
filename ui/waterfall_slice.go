@@ -53,8 +53,40 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	letterContainer.AddChild(s.Letter)
 	row1.AddChild(letterContainer)
 	s.RXAnt = u.MakeText("Roboto-Condensed-24", colornames.Deepskyblue)
+	s.RXAnt.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
+		var antennas []any
+		for _, ant := range s.Data.RXAntList {
+			antennas = append(antennas, ant)
+		}
+		u.ShowWindow(
+			u.MakeListWindow(
+				"Select RX Antenna", "Roboto-16", "", "Roboto-16",
+				antennas, s.Data.RXAnt, func(a any) string { return a.(string) },
+				func(item any, ok bool) {
+					if ok {
+						u.RadioShim.SetSliceRXAnt(s.Data.Index, item.(string))
+					}
+				},
+			))
+	})
 	row1.AddChild(s.RXAnt)
 	s.TXAnt = u.MakeText("Roboto-Condensed-24", colornames.Red)
+	s.TXAnt.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
+		var antennas []any
+		for _, ant := range s.Data.TXAntList {
+			antennas = append(antennas, ant)
+		}
+		u.ShowWindow(
+			u.MakeListWindow(
+				"Select TX Antenna", "Roboto-16", "", "Roboto-16",
+				antennas, s.Data.TXAnt, func(a any) string { return a.(string) },
+				func(item any, ok bool) {
+					if ok {
+						u.RadioShim.SetSliceTXAnt(s.Data.Index, item.(string))
+					}
+				},
+			))
+	})
 
 	// Create the volume slider (hidden by default)
 	s.VolumeSlider = widget.NewSlider(
