@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
@@ -57,6 +58,14 @@ func (u *UI) MakeWindow(title, titleFont string, content *widget.Container, opts
 	return &Window{
 		widget: window,
 	}
+}
+
+// MakeNumericEntryWindow creates either a numeric keypad (touch mode) or regular text entry
+func (u *UI) MakeNumericEntryWindow(title, titleFont, prompt, mainFont string, fontSize int, cb func(string, bool)) *Window {
+	if u.cfg.Touch {
+		return u.MakeNumericKeypadWindow(title, titleFont, prompt, fmt.Sprintf("%s-%d", mainFont, fontSize), fmt.Sprintf("Icons-%d", fontSize), cb)
+	}
+	return u.MakeEntryWindow(title, titleFont, prompt, fmt.Sprintf("%s-%d", mainFont, fontSize), cb)
 }
 
 func (u *UI) MakeEntryWindow(title, titleFont, prompt, mainFont string, cb func(string, bool)) *Window {
@@ -117,6 +126,133 @@ func (u *UI) MakeEntryWindow(title, titleFont, prompt, mainFont string, cb func(
 	buttonRow.AddChild(
 		u.MakeButton(mainFont, "OK", func(_ *widget.ButtonClickedEventArgs) {
 			cb(input.GetText(), true)
+			window.widget.Close()
+		}, widget.WidgetOpts.LayoutData(
+			widget.RowLayoutData{Stretch: true},
+		)),
+		u.MakeButton(mainFont, "Cancel", func(_ *widget.ButtonClickedEventArgs) {
+			cb("", false)
+			window.widget.Close()
+		}),
+	)
+	contents.AddChild(buttonRow)
+	window = u.MakeWindow(title, titleFont, contents)
+	return window
+}
+
+func (u *UI) MakeNumericKeypadWindow(title, titleFont, prompt, mainFont, iconFont string, cb func(string, bool)) *Window {
+	var window *Window
+	mainFace := u.Font(mainFont)
+	var currentInput string
+
+	contents := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(16),
+		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchVertical:   true,
+			StretchHorizontal: true,
+		})),
+	)
+
+	if prompt != "" {
+		contents.AddChild(widget.NewText(
+			widget.TextOpts.Text(prompt, mainFace, color.NRGBA{0xee, 0xee, 0xee, 0xff}),
+			widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+			}))))
+	}
+
+	// Display for current input
+	display := widget.NewText(
+		widget.TextOpts.Text("", mainFace, color.NRGBA{0xee, 0xee, 0xee, 0xff}),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionCenter,
+				Stretch:  true,
+			}),
+		),
+	)
+	displayContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(color.NRGBA{0x44, 0x44, 0x44, 0xff})),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(8)),
+		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+			Stretch:  true,
+			MaxWidth: 600,
+		})),
+	)
+	displayContainer.AddChild(display)
+	contents.AddChild(displayContainer)
+
+	// Helper to update display
+	updateDisplay := func() {
+		if currentInput == "" {
+			display.Label = "0"
+		} else {
+			display.Label = currentInput
+		}
+	}
+	updateDisplay()
+
+	// Create keypad grid
+	keypadGrid := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(3),
+			widget.GridLayoutOpts.Spacing(8, 8),
+			widget.GridLayoutOpts.Stretch([]bool{true, true, true}, []bool{true, true, true, true}),
+		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+			Stretch: true,
+		})),
+	)
+
+	// Button factory for digit buttons
+	makeDigitButton := func(label string) *widget.Button {
+		return u.MakeButton(mainFont, label, func(_ *widget.ButtonClickedEventArgs) {
+			currentInput += label
+			updateDisplay()
+		}, widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+			MaxHeight: 60,
+		}))
+	}
+
+	// Add digit buttons 1-9
+	for i := 1; i <= 9; i++ {
+		digit := string(rune('0' + i))
+		keypadGrid.AddChild(makeDigitButton(digit))
+	}
+
+	// Bottom row: Backspace, 0, .
+	keypadGrid.AddChild(u.MakeButton(iconFont, "\uE14A", func(_ *widget.ButtonClickedEventArgs) {
+		if len(currentInput) > 0 {
+			currentInput = currentInput[:len(currentInput)-1]
+			updateDisplay()
+		}
+	}, widget.WidgetOpts.LayoutData(widget.GridLayoutData{
+		MaxHeight: 60,
+	})))
+
+	keypadGrid.AddChild(makeDigitButton("0"))
+
+	keypadGrid.AddChild(makeDigitButton("."))
+
+	contents.AddChild(keypadGrid)
+
+	// OK and Cancel buttons
+	buttonRow := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(8),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true})),
+	)
+	buttonRow.AddChild(
+		u.MakeButton(mainFont, "OK", func(_ *widget.ButtonClickedEventArgs) {
+			cb(currentInput, true)
 			window.widget.Close()
 		}, widget.WidgetOpts.LayoutData(
 			widget.RowLayoutData{Stretch: true},

@@ -48,7 +48,7 @@ func (u *UI) MakeRadiosPage() *RadiosPage {
 					exec.Command("systemctl", "poweroff").Run()
 				case "Enter IP address...":
 					u.ShowWindow(
-						u.MakeEntryWindow("Enter IP", "Roboto-24", "Enter an IP[:port] to connect to a radio", "Roboto-24", func(ip string, ok bool) {
+						u.MakeNumericEntryWindow("Enter IP", "Roboto-24", "Enter an IP[:port] to connect to a radio", "Roboto", 24, func(ip string, ok bool) {
 							if ok {
 								u.eventBus.Publish(events.RadioSelected{
 									Address: ip,

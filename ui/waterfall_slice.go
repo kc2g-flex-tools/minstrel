@@ -4,9 +4,10 @@ import (
 	"image/color"
 
 	"github.com/ebitenui/ebitenui/widget"
+	"golang.org/x/image/colornames"
+
 	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
-	"golang.org/x/image/colornames"
 )
 
 type Slice struct {
@@ -84,7 +85,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	s.Frequency = u.MakeText("Roboto-Condensed-Light-32", colornames.Seashell)
 	s.Frequency.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
 		u.ShowWindow(
-			u.MakeEntryWindow("Enter frequency", "Roboto-24", "", "Roboto-24", func(freqStr string, ok bool) {
+			u.MakeNumericEntryWindow("Enter frequency", "Roboto-24", "", "Roboto", 24, func(freqStr string, ok bool) {
 				freq := errutil.MustParseFloat(freqStr, "frequency entry")
 				u.RadioShim.TuneSlice(s.Data, freq, false)
 			}),
