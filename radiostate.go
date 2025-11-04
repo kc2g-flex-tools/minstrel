@@ -153,6 +153,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 		Prefix:  "interlock",
 		Updates: make(chan flexclient.StateUpdate, 100),
 	})
+	transmit := fc.Subscribe(flexclient.Subscription{
+		Prefix:  "transmit",
+		Updates: make(chan flexclient.StateUpdate, 100),
+	})
 
 	ClientUUID, uuidOK := getClientID()
 	if uuidOK {
@@ -243,6 +247,12 @@ func (rs *RadioState) Run(ctx context.Context) {
 			rs.EventBus.Publish(events.TransmitStateChanged{
 				Transmitting: tx,
 			})
+		case st := <-transmit.Updates:
+			if voxEnable, ok := st.CurrentState["vox_enable"]; ok {
+				rs.EventBus.Publish(events.VOXStateChanged{
+					Enabled: voxEnable == "1",
+				})
+			}
 		case pkt := <-vita:
 			if pkt.Preamble.Stream_id == rs.WaterfallStream {
 				rs.updateWaterfall(pkt)

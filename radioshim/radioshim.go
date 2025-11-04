@@ -15,6 +15,7 @@ type Shim interface {
 	TuneSliceStep(*SliceData, int)
 	SetSliceVolume(index int, volume int)
 	SetPTT(bool)
+	SetVOX(bool)
 }
 
 type SliceData struct {

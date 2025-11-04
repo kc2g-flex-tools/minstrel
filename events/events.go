@@ -53,6 +53,12 @@ type TransmitStateChanged struct {
 	Transmitting bool
 }
 
+// VOXStateChanged is fired when VOX enable state changes
+type VOXStateChanged struct {
+	baseEvent
+	Enabled bool
+}
+
 // StreamEstablished is fired when audio/waterfall streams are created
 type StreamEstablished struct {
 	baseEvent

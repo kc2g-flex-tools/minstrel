@@ -177,6 +177,15 @@ func (u *UI) HandleEvents(eventChan chan events.Event) {
 				u.Widgets.WaterfallPage.Controls.MOX.SetState(state)
 			})
 
+		case events.VOXStateChanged:
+			u.Defer(func() {
+				state := widget.WidgetUnchecked
+				if e.Enabled {
+					state = widget.WidgetChecked
+				}
+				u.Widgets.WaterfallPage.Controls.VOX.SetState(state)
+			})
+
 		case events.SlicesUpdated:
 			u.Defer(func() {
 				u.Widgets.WaterfallPage.UpdateSlices(e.Slices)

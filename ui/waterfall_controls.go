@@ -14,6 +14,7 @@ type WaterfallControls struct {
 	ZoomIn    *widget.Button
 	Find      *widget.Button
 	MOX       *widget.Button
+	VOX       *widget.Button
 }
 
 func (u *UI) MakeWaterfallControls() *WaterfallControls {
@@ -61,11 +62,18 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 		}
 		u.RadioShim.SetPTT(args.State == widget.WidgetChecked)
 	})
+	wfc.VOX = u.MakeToggleButton("Roboto-16", "VOX", func(args *widget.ButtonChangedEventArgs) {
+		if args.OffsetX == -1 {
+			return
+		}
+		u.RadioShim.SetVOX(args.State == widget.WidgetChecked)
+	})
 
 	wfc.Container.AddChild(
 		wfc.Exit,
 		wfc.Audio,
 		wfc.MOX,
+		wfc.VOX,
 		wfc.ZoomOut,
 		wfc.ZoomIn,
 		wfc.Find,
