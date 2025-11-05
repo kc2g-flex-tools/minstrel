@@ -136,3 +136,10 @@ func (rs *RadioState) SetSliceTXAnt(index int, txant string) {
 		log.Println("SliceSet error:", err)
 	}
 }
+
+func (rs *RadioState) RemoveSlice(index int) {
+	res := rs.FlexClient.SendAndWait(fmt.Sprintf("slice remove %d", index))
+	if res.Error != 0 {
+		log.Printf("slice remove error: %v", res)
+	}
+}

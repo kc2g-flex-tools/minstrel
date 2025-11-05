@@ -150,7 +150,11 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
 		)),
 	)
-	buttons.AddChild(u.MakeButton("Icons-16", "\ue5cd", func(*widget.ButtonClickedEventArgs) {}))
+	// Close button
+	buttons.AddChild(u.MakeButton("Icons-16", "\ue5cd", func(*widget.ButtonClickedEventArgs) {
+		u.RadioShim.RemoveSlice(s.Data.Index)
+	}))
+	// Slice settings icon
 	buttons.AddChild(u.MakeButton("Icons-16", "\ue8b8", func(*widget.ButtonClickedEventArgs) {}))
 	// Speaker icon for volume control
 	buttons.AddChild(u.MakeButton("Icons-16", "", func(_ *widget.ButtonClickedEventArgs) {

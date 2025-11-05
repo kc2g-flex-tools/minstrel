@@ -14,6 +14,7 @@ type Shim interface {
 	ActivateSlice(int)
 	TuneSliceStep(*SliceData, int)
 	SetSliceVolume(index int, volume int)
+	RemoveSlice(int)
 	SetPTT(bool)
 	SetVOX(bool)
 	SetTransmitParam(key string, value int)
