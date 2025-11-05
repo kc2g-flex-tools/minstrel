@@ -3,7 +3,9 @@ package ui
 import (
 	"image"
 	"log"
+	"maps"
 	"math"
+	"slices"
 	"time"
 
 	ebimage "github.com/ebitenui/ebitenui/image"
@@ -413,7 +415,11 @@ func (wf *Waterfall) Update(u *UI) {
 	wf.handleFreqScroll()
 	wf.drawWaterfall()
 
-	for letter, slice := range u.Widgets.WaterfallPage.Slices {
+	// Draw slices in reverse letter order to avoid flickering
+	letters := slices.Sorted(maps.Keys(u.Widgets.WaterfallPage.Slices))
+	slices.Reverse(letters)
+	for _, letter := range letters {
+		slice := u.Widgets.WaterfallPage.Slices[letter]
 		if slice.Data.Present {
 			wf.drawSliceMarker(slice, letter, u)
 		}
