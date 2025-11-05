@@ -10,6 +10,8 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/colornames"
 )
 
@@ -314,7 +316,44 @@ func (wf *Waterfall) drawWaterfall() {
 	}
 }
 
-func (wf *Waterfall) drawSliceMarker(slice *Slice) {
+func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, u *UI) {
+	// Draw the flag with the slice letter
+	face := u.Font("Roboto-Semibold-16")
+	textWidth, textHeight := text.Measure(letter, *face, 0)
+
+	// Create padding and calculate flag dimensions
+	padding := 4.0
+	flagWidth := textWidth + padding*2
+	flagHeight := textHeight + padding*2
+	radius := float32(2.0)
+
+	// Position flag at top of waterfall, just to the right of marker
+	flagX := float32(markerPos + 2)
+	flagY := float32(2.0)
+
+	// Draw rounded rectangle background using filled circles at corners and rectangles
+	// Top-left corner
+	vector.DrawFilledCircle(wf.Widget.Image, flagX+radius, flagY+radius, radius, colornames.Deepskyblue, true)
+	// Top-right corner
+	vector.DrawFilledCircle(wf.Widget.Image, flagX+float32(flagWidth)-radius, flagY+radius, radius, colornames.Deepskyblue, true)
+	// Bottom-left corner
+	vector.DrawFilledCircle(wf.Widget.Image, flagX+radius, flagY+float32(flagHeight)-radius, radius, colornames.Deepskyblue, true)
+	// Bottom-right corner
+	vector.DrawFilledCircle(wf.Widget.Image, flagX+float32(flagWidth)-radius, flagY+float32(flagHeight)-radius, radius, colornames.Deepskyblue, true)
+
+	// Fill the middle rectangles
+	vector.DrawFilledRect(wf.Widget.Image, flagX+radius, flagY, float32(flagWidth)-2*radius, float32(flagHeight), colornames.Deepskyblue, true)
+	vector.DrawFilledRect(wf.Widget.Image, flagX, flagY+radius, radius, float32(flagHeight)-2*radius, colornames.Deepskyblue, true)
+	vector.DrawFilledRect(wf.Widget.Image, flagX+float32(flagWidth)-radius, flagY+radius, radius, float32(flagHeight)-2*radius, colornames.Deepskyblue, true)
+
+	// Draw the letter text
+	textOpts := &text.DrawOptions{}
+	textOpts.GeoM.Translate(float64(flagX)+padding, float64(flagY)+padding)
+	textOpts.ColorScale.ScaleWithColor(colornames.Darkslategray)
+	text.Draw(wf.Widget.Image, letter, *face, textOpts)
+}
+
+func (wf *Waterfall) drawSliceMarker(slice *Slice, letter string, u *UI) {
 	data := slice.Data
 	freq := data.Freq
 	markerPos := float64(wf.Width) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
@@ -339,6 +378,9 @@ func (wf *Waterfall) drawSliceMarker(slice *Slice) {
 		opts.GeoM.Translate(markerPos, 0)
 		opts.ColorScale.ScaleAlpha(0.5)
 	})
+
+	// Draw the flag
+	wf.drawSliceFlag(markerPos, letter, u)
 }
 
 func (wf *Waterfall) Update(u *UI) {
@@ -350,9 +392,9 @@ func (wf *Waterfall) Update(u *UI) {
 	wf.handleFreqScroll()
 	wf.drawWaterfall()
 
-	for _, slice := range u.Widgets.WaterfallPage.Slices {
+	for letter, slice := range u.Widgets.WaterfallPage.Slices {
 		if slice.Data.Present {
-			wf.drawSliceMarker(slice)
+			wf.drawSliceMarker(slice, letter, u)
 		}
 	}
 
