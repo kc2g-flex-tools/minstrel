@@ -1,11 +1,14 @@
 package radioshim
 
+// SliceMap is a type alias for a map of slice data keyed by slice index
+type SliceMap map[string]*SliceData
+
 type Shim interface {
 	ToggleAudio(bool)
 	ZoomIn()
 	ZoomOut()
 	FindActiveSlice()
-	GetSlices() map[string]*SliceData
+	GetSlices() SliceMap
 	TuneSlice(*SliceData, float64, bool)
 	SetSliceMode(int, string)
 	SetSliceRXAnt(int, string)

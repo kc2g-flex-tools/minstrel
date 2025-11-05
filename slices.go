@@ -15,36 +15,12 @@ import (
 
 	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
+	"github.com/kc2g-flex-tools/minstrel/pkg/format"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
-func formatFreq(fFloat float64, err error) string {
-	if err != nil {
-		return "<error>"
-	}
-	freq := int(math.Round(fFloat * 1e6))
-	fStr := ""
-	for freq > 0 {
-		mod1000 := freq % 1000
-		freq = freq / 1000
-		var chunk string
-		if freq > 0 {
-			chunk = fmt.Sprintf("%03d", mod1000)
-		} else {
-			chunk = fmt.Sprintf("%d", mod1000)
-		}
-
-		if fStr == "" {
-			fStr = chunk
-		} else {
-			fStr = chunk + "." + fStr
-		}
-	}
-	return fStr
-}
-
 func (rs *RadioState) updateGUI() {
-	slices := map[string]*radioshim.SliceData{}
+	slices := radioshim.SliceMap{}
 	for objName, slice := range rs.FlexClient.FindObjects("slice ") {
 		if slice["client_handle"] != rs.ClientID {
 			continue
@@ -52,7 +28,7 @@ func (rs *RadioState) updateGUI() {
 		letter := slice["index_letter"]
 		out := radioshim.SliceData{Present: slice["in_use"] != "0"}
 		out.Freq = errutil.MustParseFloat(slice["RF_frequency"], "slice RF_frequency")
-		out.FreqFormatted = formatFreq(out.Freq, nil)
+		out.FreqFormatted = format.FrequencyMHz(out.Freq)
 		out.Mode = slice["mode"]
 		out.Modes = strings.Split(slice["mode_list"], ",")
 		out.RXAnt = slice["rxant"]

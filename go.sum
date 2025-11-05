@@ -31,6 +31,8 @@ github.com/jfreymuth/pulse v0.1.1 h1:9WLNBNCijmtZ14ZJpatgJPu/NjwAl3TIKItSFnTh+9A
 github.com/jfreymuth/pulse v0.1.1/go.mod h1:cpYspI6YljhkUf1WLXLLDmeaaPFc3CnGLjDZf9dZ4no=
 github.com/kc2g-flex-tools/flexclient v0.9.1 h1:WSQJex5ES5P3EGclYzMQ/DNbkjdlgVoFi9kaGIRHHug=
 github.com/kc2g-flex-tools/flexclient v0.9.1/go.mod h1:zVHZbwOlIhb9/C5U/ulQzDxnVzqyY7gAjnjHz1g4Sa4=
+github.com/kc2g-flex-tools/flexclient v0.9.2 h1:fRb/kViyKjjzAQHGVdKnYzPmbLSkCDDvHfs4vC5i9pA=
+github.com/kc2g-flex-tools/flexclient v0.9.2/go.mod h1:zVHZbwOlIhb9/C5U/ulQzDxnVzqyY7gAjnjHz1g4Sa4=
 github.com/matryer/is v1.4.1 h1:55ehd8zaGABKLXQUe2awZ99BD/PTc2ls+KV/dXphgEQ=
 github.com/matryer/is v1.4.1/go.mod h1:8I/i5uYgLzgsgEloJE1U6xx5HkBQpAZvepWuujKwMRU=
 github.com/pierrec/lz4/v4 v4.1.21 h1:yOVMLb6qSIDP67pl/5F7RepeKYu/VmTyEXvuMI5d9mQ=

@@ -6,9 +6,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
+
+	"github.com/kc2g-flex-tools/minstrel/pkg/radio"
 )
 
 func (rs *RadioState) playOpus(pkt flexclient.VitaPacket) {
@@ -16,19 +19,33 @@ func (rs *RadioState) playOpus(pkt flexclient.VitaPacket) {
 	rs.Audio.Decode(data)
 }
 
+// createAudioStream creates an audio stream of the specified type
+func (rs *RadioState) createAudioStream(streamType string) {
+	rs.FlexClient.SendCmd(fmt.Sprintf("stream create type=%s compression=opus", streamType))
+}
+
+// removeStream removes a stream by ID
+func (rs *RadioState) removeStream(streamID radio.StreamID) {
+	if !streamID.IsValid() {
+		return
+	}
+	res := rs.FlexClient.SendAndWait(fmt.Sprintf("stream remove %s", streamID.StringLower()))
+	if res.Error != 0 {
+		log.Printf("stream remove failed: %s", res.Message)
+	}
+}
+
 func (rs *RadioState) ToggleAudio(enable bool) {
 	if enable {
-		rs.FlexClient.SendCmd("stream create type=remote_audio_rx compression=opus")
-		rs.FlexClient.SendCmd("stream create type=remote_audio_tx compression=opus")
+		rs.createAudioStream("remote_audio_rx")
+		rs.createAudioStream("remote_audio_tx")
 		rs.Audio.Start()
 		rs.Audio.StartTX(rs.FlexClient, &rs.TXAudioStream)
 	} else {
-		rs.FlexClient.SendCmd(fmt.Sprintf("stream remove 0x%08x", rs.RXAudioStream))
+		rs.removeStream(rs.RXAudioStream)
 		rs.RXAudioStream = 0
-		if rs.TXAudioStream != 0 {
-			rs.FlexClient.SendCmd(fmt.Sprintf("stream remove 0x%08x", rs.TXAudioStream))
-			rs.TXAudioStream = 0
-		}
+		rs.removeStream(rs.TXAudioStream)
+		rs.TXAudioStream = 0
 		rs.Audio.Pause()
 		rs.Audio.StopTX()
 	}

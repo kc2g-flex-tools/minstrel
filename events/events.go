@@ -44,7 +44,7 @@ type WaterfallRowReceived struct {
 // SlicesUpdated is fired when slice data changes
 type SlicesUpdated struct {
 	baseEvent
-	Slices map[string]*radioshim.SliceData
+	Slices radioshim.SliceMap
 }
 
 // TransmitStateChanged is fired when TX state changes

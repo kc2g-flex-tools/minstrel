@@ -150,6 +150,19 @@ func (u *UI) Layout(width, height int) (int, int) {
 	return width, height
 }
 
+// Defer schedules a callback to run on the next UI update cycle.
+// This is required when updating UI state from goroutines to ensure
+// thread safety with Ebiten's game loop. The deferred callbacks run
+// during Update() under the UI mutex lock.
+//
+// Usage:
+//   - Use this for all UI updates from event handlers
+//   - Do NOT call UI methods directly from goroutines
+//   - Callbacks should be fast and non-blocking
+//
+// Thread Safety:
+//   The deferred queue is protected by u.mu and executed serially
+//   during runDeferred(), which is called from Update().
 func (u *UI) Defer(cb func()) {
 	u.mu.Lock()
 	defer u.mu.Unlock()

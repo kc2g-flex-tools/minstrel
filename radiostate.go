@@ -6,55 +6,24 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/kc2g-flex-tools/flexclient"
 
 	"github.com/kc2g-flex-tools/minstrel/audio"
 	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/midi"
 	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
+	"github.com/kc2g-flex-tools/minstrel/pkg/persistence"
+	"github.com/kc2g-flex-tools/minstrel/pkg/radio"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
-func getClientID() (string, bool) {
-	fn, err := xdg.DataFile("minstrel/client_id")
-	if err != nil {
-		log.Println(err)
-		return "", false
-	}
-	file, err := os.Open(fn)
-	if err != nil {
-		log.Println(err)
-		return "", false
-	}
-	defer file.Close()
-	contents, err := io.ReadAll(file)
-	if err != nil {
-		log.Println(err)
-		return "", false
-	}
-	return strings.TrimSuffix(string(contents), "\n"), true
-}
 
-func setClientID(clientID string) error {
-	fn, _ := xdg.DataFile("minstrel/client_id")
-	file, err := os.Create(fn)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	fmt.Fprintf(file, "%s\n", clientID)
-	return nil
-}
-
-type WFState struct {
+type wfState struct {
 	width      uint16
 	bins       []uint16
 	timecode   uint32
@@ -70,11 +39,11 @@ type RadioState struct {
 	EventBus        *events.Bus
 	MIDI            *midi.MIDI
 	ClientID        string
-	WaterfallStream uint32
-	RXAudioStream   uint32
-	TXAudioStream   uint32
-	WFState         WFState
-	Slices          map[string]*radioshim.SliceData
+	WaterfallStream radio.StreamID
+	RXAudioStream   radio.StreamID
+	TXAudioStream   radio.StreamID
+	wfState         wfState
+	Slices          radioshim.SliceMap
 	stationName     string
 	profileName     string
 	discoveryCancel context.CancelFunc
@@ -161,8 +130,14 @@ func (rs *RadioState) Run(ctx context.Context) {
 		Updates: make(chan flexclient.StateUpdate, 100),
 	})
 
-	ClientUUID, uuidOK := getClientID()
-	if uuidOK {
+	clientStore, err := persistence.NewClientStore()
+	if err != nil {
+		log.Fatal("failed to create client store:", err)
+	}
+
+	var ClientUUID string
+	ClientUUID, err = clientStore.Load()
+	if err == nil {
 		fc.SendAndWait("client gui " + ClientUUID)
 		fmt.Println("connected with client ID " + ClientUUID)
 	} else {
@@ -170,12 +145,11 @@ func (rs *RadioState) Run(ctx context.Context) {
 		if res.Error != 0 {
 			log.Fatal(res)
 		}
-		ClientUUID := res.Message
-		err := setClientID(ClientUUID)
-		log.Println("got new client ID " + ClientUUID)
-		if err != nil {
-			log.Println(err)
+		ClientUUID = res.Message
+		if err := clientStore.Save(ClientUUID); err != nil {
+			log.Println("failed to save client ID:", err)
 		}
+		log.Println("got new client ID " + ClientUUID)
 	}
 	rs.ClientID = "0x" + fc.ClientID()
 
@@ -189,7 +163,7 @@ func (rs *RadioState) Run(ctx context.Context) {
 	fc.SendAndWait("sub slice all")
 	fc.SendAndWait("sub tx all")
 
-	err := fc.InitUDP()
+	err = fc.InitUDP()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,9 +184,9 @@ func (rs *RadioState) Run(ctx context.Context) {
 		case st := <-waterfalls.Updates:
 			if st.CurrentState["client_handle"] == rs.ClientID {
 				streamStr := strings.TrimPrefix(st.Object, "display waterfall 0x")
-				streamId := errutil.MustParseUint32(streamStr, 16, "waterfall stream ID")
-				if streamId != 0 {
-					if rs.WaterfallStream == 0 {
+				streamId := radio.MustParseStreamID(streamStr, "waterfall stream ID")
+				if streamId.IsValid() {
+					if !rs.WaterfallStream.IsValid() {
 						log.Println("my waterfall is", streamStr)
 						rs.WaterfallStream = streamId
 						wf, _ := rs.getWaterfallAndPan()
@@ -232,16 +206,16 @@ func (rs *RadioState) Run(ctx context.Context) {
 		case st := <-streams.Updates:
 			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_rx" && st.CurrentState["compression"] == "OPUS" {
 				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
-				streamId := errutil.MustParseUint32(streamStr, 16, "RX audio stream ID")
-				if streamId != 0 {
+				streamId := radio.MustParseStreamID(streamStr, "RX audio stream ID")
+				if streamId.IsValid() {
 					log.Println("got opus RX stream", streamStr)
 					rs.RXAudioStream = streamId
 				}
 			}
 			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_tx" && st.CurrentState["compression"] == "OPUS" {
 				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
-				streamId := errutil.MustParseUint32(streamStr, 16, "TX audio stream ID")
-				if streamId != 0 {
+				streamId := radio.MustParseStreamID(streamStr, "TX audio stream ID")
+				if streamId.IsValid() {
 					log.Println("got opus TX stream", streamStr)
 					rs.TXAudioStream = streamId
 				}
@@ -262,17 +236,17 @@ func (rs *RadioState) Run(ctx context.Context) {
 				Params: st.CurrentState,
 			})
 		case pkt := <-vita:
-			if pkt.Preamble.Stream_id == rs.WaterfallStream {
+			if radio.StreamID(pkt.Preamble.Stream_id) == rs.WaterfallStream {
 				rs.updateWaterfall(pkt)
 			}
-			if pkt.Preamble.Stream_id == rs.RXAudioStream {
+			if radio.StreamID(pkt.Preamble.Stream_id) == rs.RXAudioStream {
 				rs.playOpus(pkt)
 			}
 		}
 	}
 }
 
-func (rs *RadioState) GetSlices() map[string]*radioshim.SliceData {
+func (rs *RadioState) GetSlices() radioshim.SliceMap {
 	rs.mu.RLock()
 	defer rs.mu.RUnlock()
 	return rs.Slices

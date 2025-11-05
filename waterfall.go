@@ -18,49 +18,49 @@ import (
 
 func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {
 	data := vita.ParseVitaWaterfall(pkt.Payload, pkt.Preamble)
-	if data.TotalBinsInFrame != rs.WFState.width {
+	if data.TotalBinsInFrame != rs.wfState.width {
 		rs.EventBus.Publish(events.WaterfallBinsConfigured{
 			Width: data.TotalBinsInFrame,
 		})
-		rs.WFState.width = data.TotalBinsInFrame
-		rs.WFState.bins = make([]uint16, data.TotalBinsInFrame)
+		rs.wfState.width = data.TotalBinsInFrame
+		rs.wfState.bins = make([]uint16, data.TotalBinsInFrame)
 	}
 
 	// TODO: FlexLib does a fancy thing here where it keeps several "in-progress" rows
 	// keyed by timecode, and flushes them out as they fill, which I guess can be useful
 	// in case of packet reordering.
-	if data.Timecode != rs.WFState.timecode {
-		rs.WFState.timecode = data.Timecode
+	if data.Timecode != rs.wfState.timecode {
+		rs.wfState.timecode = data.Timecode
 		low := data.FrameLowFreq
 		// The +1 is very confusing and probably wrong,
 		// and yet it seems to produce a correct result.
 		high := low + uint64(data.TotalBinsInFrame-1)*(data.BinBandwidth+1)
-		rs.WFState.dataLow = float64(low) / 1e6
-		rs.WFState.dataHigh = float64(high) / 1e6
-		rs.WFState.binsFilled = 0
+		rs.wfState.dataLow = float64(low) / 1e6
+		rs.wfState.dataHigh = float64(high) / 1e6
+		rs.wfState.binsFilled = 0
 	}
 
-	copy(rs.WFState.bins[int(data.FirstBinIndex):int(data.FirstBinIndex)+int(data.Width)], data.Data)
-	rs.WFState.binsFilled += data.Width
+	copy(rs.wfState.bins[int(data.FirstBinIndex):int(data.FirstBinIndex)+int(data.Width)], data.Data)
+	rs.wfState.binsFilled += data.Width
 
-	if rs.WFState.binsFilled == rs.WFState.width {
+	if rs.wfState.binsFilled == rs.wfState.width {
 		rs.EventBus.Publish(events.WaterfallDataRangeChanged{
-			Low:  rs.WFState.dataLow,
-			High: rs.WFState.dataHigh,
+			Low:  rs.wfState.dataLow,
+			High: rs.wfState.dataHigh,
 		})
 		rs.EventBus.Publish(events.WaterfallRowReceived{
-			Bins:       rs.WFState.bins,
+			Bins:       rs.wfState.bins,
 			BlackLevel: data.AutoBlackLevel,
 		})
 	}
 }
 
 func (rs *RadioState) getWaterfallAndPan() (flexclient.Object, flexclient.Object) {
-	if rs.WaterfallStream == 0 {
+	if !rs.WaterfallStream.IsValid() {
 		return nil, nil
 	}
 	fc := rs.FlexClient
-	wf, ok := fc.GetObject(fmt.Sprintf("display waterfall 0x%08X", rs.WaterfallStream))
+	wf, ok := fc.GetObject(fmt.Sprintf("display waterfall %s", rs.WaterfallStream))
 	if !ok {
 		return nil, nil
 	}
@@ -69,32 +69,39 @@ func (rs *RadioState) getWaterfallAndPan() (flexclient.Object, flexclient.Object
 	return wf, pan
 }
 
-func (rs *RadioState) ZoomIn() {
+// setPanParameter sets a panadapter parameter using PanSet
+func (rs *RadioState) setPanParameter(key, value string) error {
 	wf, pan := rs.getWaterfallAndPan()
 	if wf == nil || pan == nil {
+		return fmt.Errorf("waterfall or pan not available")
+	}
+	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{key: value})
+	if err != nil {
+		log.Printf("PanSet %s error: %v", key, err)
+	}
+	return err
+}
+
+func (rs *RadioState) ZoomIn() {
+	_, pan := rs.getWaterfallAndPan()
+	if pan == nil {
 		return
 	}
 	bw := errutil.MustParseFloat(pan["bandwidth"], "pan bandwidth")
 	minBw := errutil.MustParseFloat(pan["min_bw"], "pan min_bw")
 	bw = max(bw/2, minBw)
-	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
-	if err != nil {
-		log.Println("PanSet error:", err)
-	}
+	rs.setPanParameter("bandwidth", fmt.Sprintf("%f", bw))
 }
 
 func (rs *RadioState) ZoomOut() {
-	wf, pan := rs.getWaterfallAndPan()
-	if wf == nil || pan == nil {
+	_, pan := rs.getWaterfallAndPan()
+	if pan == nil {
 		return
 	}
 	bw := errutil.MustParseFloat(pan["bandwidth"], "pan bandwidth")
 	maxBw := errutil.MustParseFloat(pan["max_bw"], "pan max_bw")
 	bw = min(bw*2, maxBw)
-	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"bandwidth": fmt.Sprintf("%f", bw)})
-	if err != nil {
-		log.Println("PanSet error:", err)
-	}
+	rs.setPanParameter("bandwidth", fmt.Sprintf("%f", bw))
 }
 
 func (rs *RadioState) FindActiveSlice() {
@@ -103,18 +110,11 @@ func (rs *RadioState) FindActiveSlice() {
 			continue
 		}
 		index := strings.TrimPrefix(objName, "slice ")
-		freq := slice["RF_frequency"]
-		rs.FlexClient.SendCmd(fmt.Sprintf("slice tune %s %s autopan=1", index, freq))
+		freq := errutil.MustParseFloat(slice["RF_frequency"], "slice RF_frequency")
+		rs.FlexClient.SliceTuneOpts(context.Background(), index, freq, flexclient.Object{"autopan": "1"})
 	}
 }
 
 func (rs *RadioState) CenterWaterfallAt(freq float64) {
-	wf, pan := rs.getWaterfallAndPan()
-	if wf == nil || pan == nil {
-		return
-	}
-	_, err := rs.FlexClient.PanSet(context.Background(), wf["panadapter"], flexclient.Object{"center": fmt.Sprintf("%f", freq)})
-	if err != nil {
-		log.Println("PanSet error:", err)
-	}
+	rs.setPanParameter("center", fmt.Sprintf("%f", freq))
 }

@@ -11,13 +11,14 @@ import (
 	"github.com/jfreymuth/pulse/proto"
 	"github.com/kc2g-flex-tools/flexclient"
 	"github.com/kc2g-flex-tools/minstrel/opus"
+	"github.com/kc2g-flex-tools/minstrel/pkg/radio"
 	opuslib "gopkg.in/hraban/opus.v2"
 )
 
 // VitaOpusPacket represents a VITA packet for Opus audio transmission
 type VitaOpusPacket struct {
 	header   vita.VitaHeader
-	streamID uint32
+	streamID radio.StreamID
 	classID  vita.VitaClassID
 	payload  []byte
 }
@@ -51,7 +52,7 @@ type Audio struct {
 	txMutex    sync.Mutex
 	txRunning  bool
 	txClient   *flexclient.FlexClient
-	txStreamID *uint32
+	txStreamID *radio.StreamID
 	txPacket   *VitaOpusPacket
 	txSeq      uint16
 	txWriter   *TXAudioWriter
@@ -109,7 +110,7 @@ func NewAudio() *Audio {
 }
 
 // StartTX starts transmit audio recording and encoding
-func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *uint32) {
+func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *radio.StreamID) {
 	a.txMutex.Lock()
 	defer a.txMutex.Unlock()
 
@@ -164,7 +165,7 @@ func (a *Audio) StopTX() {
 
 // processTXAudio processes incoming audio data for transmission
 func (a *Audio) processTXAudio(data []byte) (int, error) {
-	if !a.txRunning || a.txClient == nil || a.txStreamID == nil || *a.txStreamID == 0 {
+	if !a.txRunning || a.txClient == nil || a.txStreamID == nil || !a.txStreamID.IsValid() {
 		return len(data), nil
 	}
 
@@ -233,7 +234,7 @@ func (p *VitaOpusPacket) ToBytes() []byte {
 	headerWord |= uint32(p.header.Packet_size)
 
 	binary.BigEndian.PutUint32(buf[0:4], headerWord)
-	binary.BigEndian.PutUint32(buf[4:8], p.streamID)
+	binary.BigEndian.PutUint32(buf[4:8], uint32(p.streamID))
 	binary.BigEndian.PutUint32(buf[8:12], p.classID.OUI&0x00FFFFFF)
 	binary.BigEndian.PutUint32(buf[12:16], uint32(p.classID.InformationClassCode)<<16|uint32(p.classID.PacketClassCode))
 
