@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hb9fxq/flexlib-go/vita"
@@ -39,4 +40,24 @@ func (rs *RadioState) SetPTT(enable bool) {
 		xmit = "1"
 	}
 	rs.FlexClient.SendCmd(fmt.Sprintf("xmit %s", xmit))
+}
+
+func (rs *RadioState) SetVOX(enable bool) {
+	value := "0"
+	if enable {
+		value = "1"
+	}
+	rs.FlexClient.TransmitSet(context.Background(), flexclient.Object{"vox_enable": value})
+}
+
+func (rs *RadioState) SetTransmitParam(key string, value int) {
+	rs.FlexClient.TransmitSet(context.Background(), flexclient.Object{key: fmt.Sprintf("%d", value)})
+}
+
+func (rs *RadioState) SetAMCarrierLevel(level int) {
+	rs.FlexClient.TransmitAMCarrierSet(context.Background(), fmt.Sprintf("%d", level))
+}
+
+func (rs *RadioState) SetMicLevel(level int) {
+	rs.FlexClient.TransmitMicLevelSet(context.Background(), fmt.Sprintf("%d", level))
 }

@@ -16,6 +16,9 @@ type Shim interface {
 	SetSliceVolume(index int, volume int)
 	SetPTT(bool)
 	SetVOX(bool)
+	SetTransmitParam(key string, value int)
+	SetAMCarrierLevel(level int)
+	SetMicLevel(level int)
 }
 
 type SliceData struct {

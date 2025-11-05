@@ -8,7 +8,7 @@ require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
 	github.com/hb9fxq/flexlib-go v0.0.0-20201128184122-8acafd8a4e14
 	github.com/jfreymuth/pulse v0.1.1
-	github.com/kc2g-flex-tools/flexclient v0.7.0
+	github.com/kc2g-flex-tools/flexclient v0.9.1
 	github.com/tinne26/badcolor v0.0.0-20240606171339-6b0c9b4d5e38
 	github.com/vimeo/dials v0.17.1
 	golang.org/x/image v0.31.0

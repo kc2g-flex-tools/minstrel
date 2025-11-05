@@ -253,6 +253,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 					Enabled: voxEnable == "1",
 				})
 			}
+			// Publish all transmit parameters for settings window
+			rs.EventBus.Publish(events.TransmitParamsChanged{
+				Params: st.CurrentState,
+			})
 		case pkt := <-vita:
 			if pkt.Preamble.Stream_id == rs.WaterfallStream {
 				rs.updateWaterfall(pkt)

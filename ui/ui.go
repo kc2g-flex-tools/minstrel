@@ -43,20 +43,21 @@ func DefaultConfig() *Config {
 }
 
 type UI struct {
-	mu        sync.RWMutex
-	update    bool
-	exit      bool
-	state     State
-	font      map[string]text.Face
-	Width     int
-	Height    int
-	radios    []map[string]string
-	eui       *ebitenui.UI
-	Widgets   widgets
-	RadioShim radioshim.Shim
-	deferred  []func()
-	cfg       *Config
-	eventBus  *events.Bus
+	mu             sync.RWMutex
+	update         bool
+	exit           bool
+	state          State
+	font           map[string]text.Face
+	Width          int
+	Height         int
+	radios         []map[string]string
+	eui            *ebitenui.UI
+	Widgets        widgets
+	RadioShim      radioshim.Shim
+	deferred       []func()
+	cfg            *Config
+	eventBus       *events.Bus
+	transmitParams map[string]string
 }
 
 func NewUI(cfg *Config, eventBus *events.Bus) *UI {
@@ -76,8 +77,9 @@ func NewUI(cfg *Config, eventBus *events.Bus) *UI {
 		Widgets: widgets{
 			Root: rootContainer,
 		},
-		cfg:      cfg,
-		eventBus: eventBus,
+		cfg:            cfg,
+		eventBus:       eventBus,
+		transmitParams: make(map[string]string),
 	}
 	u.MakeLayout()
 	u.Widgets.Radios = u.MakeRadiosPage()
@@ -184,6 +186,16 @@ func (u *UI) HandleEvents(eventChan chan events.Event) {
 					state = widget.WidgetChecked
 				}
 				u.Widgets.WaterfallPage.Controls.VOX.SetState(state)
+			})
+
+		case events.TransmitParamsChanged:
+			u.Defer(func() {
+				// Cache the parameters (already under u.mu)
+				for k, v := range e.Params {
+					u.transmitParams[k] = v
+				}
+				// Update the window if it exists
+				u.UpdateTransmitSettings(e.Params)
 			})
 
 		case events.SlicesUpdated:

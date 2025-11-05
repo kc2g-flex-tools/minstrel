@@ -14,11 +14,12 @@ import (
 )
 
 type WaterfallWidgets struct {
-	Container *widget.Container
-	SliceArea *widget.Container
-	Slices    map[string]*Slice
-	Waterfall *Waterfall
-	Controls  *WaterfallControls
+	Container        *widget.Container
+	SliceArea        *widget.Container
+	Slices           map[string]*Slice
+	Waterfall        *Waterfall
+	Controls         *WaterfallControls
+	TransmitSettings *TransmitSettings
 }
 
 type Waterfall struct {

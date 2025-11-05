@@ -15,6 +15,7 @@ type WaterfallControls struct {
 	Find      *widget.Button
 	MOX       *widget.Button
 	VOX       *widget.Button
+	Settings  *widget.Button
 }
 
 func (u *UI) MakeWaterfallControls() *WaterfallControls {
@@ -68,6 +69,9 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 		}
 		u.RadioShim.SetVOX(args.State == widget.WidgetChecked)
 	})
+	wfc.Settings = u.MakeButton("Icons-32", "\ue8b8", func(args *widget.ButtonClickedEventArgs) {
+		u.ShowTransmitSettings()
+	})
 
 	wfc.Container.AddChild(
 		wfc.Exit,
@@ -77,12 +81,8 @@ func (u *UI) MakeWaterfallControls() *WaterfallControls {
 		wfc.ZoomOut,
 		wfc.ZoomIn,
 		wfc.Find,
+		wfc.Settings,
 	)
 
-	for _, letter := range []string{"H"} {
-		wfc.Container.AddChild(
-			u.MakeButton("Icons-32", letter, func(args *widget.ButtonClickedEventArgs) {}),
-		)
-	}
 	return wfc
 }

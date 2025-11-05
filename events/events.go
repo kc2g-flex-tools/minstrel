@@ -59,6 +59,12 @@ type VOXStateChanged struct {
 	Enabled bool
 }
 
+// TransmitParamsChanged is fired when transmit parameters change
+type TransmitParamsChanged struct {
+	baseEvent
+	Params map[string]string
+}
+
 // StreamEstablished is fired when audio/waterfall streams are created
 type StreamEstablished struct {
 	baseEvent
