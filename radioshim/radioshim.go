@@ -19,6 +19,8 @@ type Shim interface {
 	SetTransmitParam(key string, value int)
 	SetAMCarrierLevel(level int)
 	SetMicLevel(level int)
+	GetMicList(callback func([]string))
+	SetMicInput(micName string)
 }
 
 type SliceData struct {

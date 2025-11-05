@@ -9,6 +9,7 @@ import (
 
 type TransmitSettings struct {
 	Window          *Window
+	MicSelection    *widget.Button
 	MicLevelSlider  *widget.Slider
 	MicLevelLabel   *widget.Text
 	VoxEnableToggle *widget.Button
@@ -50,16 +51,75 @@ func (u *UI) MakeTransmitSettingsWindow() *TransmitSettings {
 		})),
 	)
 
+	// Microphone Selection
+	currentMic := params["mic_selection"]
+	if currentMic == "" {
+		currentMic = "Unknown"
+	}
+	micRow := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(8),
+		)),
+	)
+	micLabel := widget.NewText(
+		widget.TextOpts.Text("Microphone", u.Font("Roboto-16"), colornames.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+			Position: widget.RowLayoutPositionCenter,
+		})),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.MinSize(120, 0)),
+	)
+	ts.MicSelection = u.MakeButton("Roboto-16", currentMic, func(args *widget.ButtonClickedEventArgs) {
+		// Get mic list from radio
+		u.RadioShim.GetMicList(func(mics []string) {
+			if len(mics) == 0 {
+				return
+			}
+			// Find current selection from button label
+			currentLabel := ts.MicSelection.Text().Label
+			var selected interface{} = currentLabel
+			for _, mic := range mics {
+				if mic == currentLabel {
+					selected = mic
+					break
+				}
+			}
+			// Show list window
+			window := u.MakeListWindow(
+				"Select Microphone",
+				"Roboto-24",
+				"",
+				"Roboto-16",
+				stringSliceToAny(mics),
+				selected,
+				func(item any) string {
+					return item.(string)
+				},
+				func(item any, ok bool) {
+					if ok && item != nil {
+						micName := item.(string)
+						ts.MicSelection.Text().Label = micName
+						u.RadioShim.SetMicInput(micName)
+					}
+				},
+			)
+			u.ShowWindow(window)
+		})
+	})
+	micRow.AddChild(micLabel)
+	micRow.AddChild(ts.MicSelection)
+	contents.AddChild(micRow)
+
 	// Mic Level
 	micInitial := getIntParam(params, "mic_level", 50)
-	micRow := u.makeSliderRow("Mic Level", 0, 100, micInitial, func(value int) string {
+	micLevelRow := u.makeSliderRow("Mic Level", 0, 100, micInitial, func(value int) string {
 		return formatPercent(value)
 	}, func(value int) {
 		u.RadioShim.SetMicLevel(value)
 	})
-	ts.MicLevelSlider = micRow.slider
-	ts.MicLevelLabel = micRow.label
-	contents.AddChild(micRow.container)
+	ts.MicLevelSlider = micLevelRow.slider
+	ts.MicLevelLabel = micLevelRow.label
+	contents.AddChild(micLevelRow.container)
 
 	// VOX
 	voxLevelInitial := getIntParam(params, "vox_level", 50)
@@ -332,6 +392,13 @@ func (u *UI) UpdateTransmitSettings(params map[string]string) {
 	}
 	ts := u.Widgets.WaterfallPage.TransmitSettings
 
+	// Update mic selection
+	if val, ok := params["mic_selection"]; ok {
+		if val != "" {
+			ts.MicSelection.Text().Label = val
+		}
+	}
+
 	// Update mic level
 	if val, ok := params["mic_level"]; ok {
 		if intVal := parseInt(val); intVal >= 0 {
@@ -429,4 +496,12 @@ func getIntParam(params map[string]string, key string, defaultVal int) int {
 		}
 	}
 	return defaultVal
+}
+
+func stringSliceToAny(strs []string) []any {
+	result := make([]any, len(strs))
+	for i, s := range strs {
+		result[i] = s
+	}
+	return result
 }

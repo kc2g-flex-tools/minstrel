@@ -61,3 +61,44 @@ func (rs *RadioState) SetAMCarrierLevel(level int) {
 func (rs *RadioState) SetMicLevel(level int) {
 	rs.FlexClient.TransmitMicLevelSet(context.Background(), fmt.Sprintf("%d", level))
 }
+
+func (rs *RadioState) GetMicList(callback func([]string)) {
+	go func() {
+		result := rs.FlexClient.SendAndWait("mic list")
+		if result.Error == 0 {
+			// Parse comma-separated list
+			mics := []string{}
+			if result.Message != "" {
+				for _, mic := range splitCommas(result.Message) {
+					if mic != "" {
+						mics = append(mics, mic)
+					}
+				}
+			}
+			callback(mics)
+		} else {
+			callback([]string{})
+		}
+	}()
+}
+
+func (rs *RadioState) SetMicInput(micName string) {
+	rs.FlexClient.SendCmd(fmt.Sprintf("mic input %s", micName))
+}
+
+func splitCommas(s string) []string {
+	result := []string{}
+	current := ""
+	for _, c := range s {
+		if c == ',' {
+			result = append(result, current)
+			current = ""
+		} else {
+			current += string(c)
+		}
+	}
+	if current != "" {
+		result = append(result, current)
+	}
+	return result
+}
