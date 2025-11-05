@@ -156,6 +156,7 @@ func (a *Audio) StopTX() {
 	a.txRunning = false
 	if a.recorder != nil {
 		a.recorder.Stop()
+		a.recorder.Close()
 		a.recorder = nil
 	}
 	log.Println("TX audio stopped")
