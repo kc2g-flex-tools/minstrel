@@ -143,3 +143,10 @@ func (rs *RadioState) RemoveSlice(index int) {
 		log.Printf("slice remove error: %v", res)
 	}
 }
+
+func (rs *RadioState) CreateSlice() {
+	res := rs.FlexClient.SendAndWait("slice create")
+	if res.Error != 0 {
+		log.Printf("slice create error: %v", res)
+	}
+}

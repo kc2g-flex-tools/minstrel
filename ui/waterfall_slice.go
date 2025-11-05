@@ -12,6 +12,8 @@ import (
 
 type Slice struct {
 	Container      *widget.Container
+	CreateButton   *widget.Container
+	SlicePanel     *widget.Container
 	Letter         *widget.Text
 	Frequency      *widget.Text
 	RXAnt          *widget.Text
@@ -28,11 +30,25 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	s := &Slice{
 		Data: &radioshim.SliceData{},
 	}
-	s.Container = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4,
+	// Outer container that will hold either the slice panel or create button
+	s.Container = widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+
+	// Create the slice panel with rounded background
+	s.SlicePanel = u.MakeRoundedRect(colornames.Black, color.NRGBA{}, 4)
+
+	// Inner container for the horizontal row layout
+	innerRow := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
 		)),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			StretchHorizontal: true,
+			StretchVertical:   true,
+		})),
 	)
+
 	display := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
@@ -143,7 +159,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	})
 	row2.AddChild(s.Mode)
 	display.AddChild(row2)
-	s.Container.AddChild(display)
+	innerRow.AddChild(display)
 
 	buttons := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
@@ -168,7 +184,20 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		window := u.MakeWindow("Slice Volume", "Roboto-24", volContainer, widget.WindowOpts.CloseMode(widget.CLICK_OUT))
 		u.ShowWindow(window)
 	}))
-	s.Container.AddChild(buttons)
+	innerRow.AddChild(buttons)
+	s.SlicePanel.AddChild(innerRow)
+
+	// Create the + button for creating a new slice
+	s.CreateButton = widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	plusButton := u.MakeButton("Icons-48", "\ue145", func(*widget.ButtonClickedEventArgs) {
+		u.RadioShim.CreateSlice()
+	})
+	s.CreateButton.AddChild(plusButton)
+
+	// Initially show the slice panel (UpdateSlices will adjust visibility)
+	s.Container.AddChild(s.SlicePanel)
 
 	return s
 }
@@ -183,10 +212,17 @@ func (w *WaterfallWidgets) UpdateSlices(slices map[string]*radioshim.SliceData) 
 		widg := w.Slices[letter]
 		widg.Data = slice
 		if !slice.Present {
-			widg.Container.GetWidget().Visibility = widget.Visibility_Hide
+			// Show create button, hide slice panel
+			widg.Container.RemoveChild(widg.SlicePanel)
+			widg.Container.RemoveChild(widg.CreateButton)
+			widg.Container.AddChild(widg.CreateButton)
 			continue
 		}
-		widg.Container.GetWidget().Visibility = widget.Visibility_Show
+		// Show slice panel, hide create button
+		widg.Container.RemoveChild(widg.SlicePanel)
+		widg.Container.RemoveChild(widg.CreateButton)
+		widg.Container.AddChild(widg.SlicePanel)
+
 		widg.Frequency.Label = slice.FreqFormatted
 		widg.Mode.Label = slice.Mode
 		widg.RXAnt.Label = slice.RXAnt
