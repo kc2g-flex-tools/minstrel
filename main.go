@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/vimeo/dials"
@@ -23,8 +24,13 @@ type Config struct {
 var config *Config
 
 func defaultConfig() *Config {
+	stationName := "Minstrel"
+	if hostname, err := os.Hostname(); err == nil && hostname != "" {
+		stationName = hostname
+	}
+
 	return &Config{
-		Station: "Minstrel",
+		Station: stationName,
 		Profile: "",
 		UI:      ui.DefaultConfig(),
 	}
