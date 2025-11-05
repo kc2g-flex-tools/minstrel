@@ -24,6 +24,8 @@ type WaterfallWidgets struct {
 	TransmitSettings *TransmitSettings
 }
 
+const sliceFlagPadding = 4.0
+
 type Waterfall struct {
 	Widget               *widget.Graphic
 	Img                  *ebiten.Image
@@ -47,6 +49,8 @@ type Waterfall struct {
 	ScrollAccumulator    float64
 	Drag                 DragData
 	ClickTime            time.Time
+	SliceFlagBg          *ebiten.Image
+	SliceFlagFace        *text.Face
 }
 
 type DragData struct {
@@ -100,6 +104,7 @@ func (u *UI) MakeWaterfallPage() {
 	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
 	wf.Waterfall.ActiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
 	wf.Waterfall.InactiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Red)
+	wf.Waterfall.initSliceFlagBg(u)
 	u.Widgets.WaterfallPage = wf
 }
 
@@ -191,6 +196,36 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 		),
 	)
 	return wf
+}
+
+func (wf *Waterfall) initSliceFlagBg(u *UI) {
+	// Store font face for reuse
+	wf.SliceFlagFace = u.Font("Roboto-Semibold-16")
+
+	// Calculate dimensions based on monospace font
+	textWidth, textHeight := text.Measure("M", *wf.SliceFlagFace, 0)
+
+	flagWidth := textWidth + sliceFlagPadding*2
+	flagHeight := textHeight + sliceFlagPadding*2
+	radius := float32(2.0)
+
+	// Create image for the flag background
+	wf.SliceFlagBg = ebiten.NewImage(int(flagWidth)+1, int(flagHeight)+1)
+
+	// Draw rounded rectangle background
+	flagX := float32(0)
+	flagY := float32(0)
+
+	// Four corners
+	vector.DrawFilledCircle(wf.SliceFlagBg, flagX+radius, flagY+radius, radius, colornames.Deepskyblue, true)
+	vector.DrawFilledCircle(wf.SliceFlagBg, flagX+float32(flagWidth)-radius, flagY+radius, radius, colornames.Deepskyblue, true)
+	vector.DrawFilledCircle(wf.SliceFlagBg, flagX+radius, flagY+float32(flagHeight)-radius, radius, colornames.Deepskyblue, true)
+	vector.DrawFilledCircle(wf.SliceFlagBg, flagX+float32(flagWidth)-radius, flagY+float32(flagHeight)-radius, radius, colornames.Deepskyblue, true)
+
+	// Fill the middle rectangles
+	vector.DrawFilledRect(wf.SliceFlagBg, flagX+radius, flagY, float32(flagWidth)-2*radius, float32(flagHeight), colornames.Deepskyblue, true)
+	vector.DrawFilledRect(wf.SliceFlagBg, flagX, flagY+radius, radius, float32(flagHeight)-2*radius, colornames.Deepskyblue, true)
+	vector.DrawFilledRect(wf.SliceFlagBg, flagX+float32(flagWidth)-radius, flagY+radius, radius, float32(flagHeight)-2*radius, colornames.Deepskyblue, true)
 }
 
 func (wf *Waterfall) SetBins(w uint16) {
@@ -317,40 +352,26 @@ func (wf *Waterfall) drawWaterfall() {
 }
 
 func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, u *UI) {
-	// Draw the flag with the slice letter
-	face := u.Font("Roboto-Semibold-16")
-	textWidth, textHeight := text.Measure(letter, *face, 0)
-
-	// Create padding and calculate flag dimensions
-	padding := 4.0
-	flagWidth := textWidth + padding*2
-	flagHeight := textHeight + padding*2
-	radius := float32(2.0)
-
 	// Position flag at top of waterfall, just to the right of marker
-	flagX := float32(markerPos + 2)
-	flagY := float32(2.0)
+	flagX := markerPos + 2
+	flagY := 2.0
 
-	// Draw rounded rectangle background using filled circles at corners and rectangles
-	// Top-left corner
-	vector.DrawFilledCircle(wf.Widget.Image, flagX+radius, flagY+radius, radius, colornames.Deepskyblue, true)
-	// Top-right corner
-	vector.DrawFilledCircle(wf.Widget.Image, flagX+float32(flagWidth)-radius, flagY+radius, radius, colornames.Deepskyblue, true)
-	// Bottom-left corner
-	vector.DrawFilledCircle(wf.Widget.Image, flagX+radius, flagY+float32(flagHeight)-radius, radius, colornames.Deepskyblue, true)
-	// Bottom-right corner
-	vector.DrawFilledCircle(wf.Widget.Image, flagX+float32(flagWidth)-radius, flagY+float32(flagHeight)-radius, radius, colornames.Deepskyblue, true)
+	// Draw pre-rendered background with transparency
+	opts := &ebiten.DrawImageOptions{}
+	opts.GeoM.Translate(flagX, flagY)
+	opts.ColorScale.ScaleAlpha(0.9)
+	wf.Widget.Image.DrawImage(wf.SliceFlagBg, opts)
 
-	// Fill the middle rectangles
-	vector.DrawFilledRect(wf.Widget.Image, flagX+radius, flagY, float32(flagWidth)-2*radius, float32(flagHeight), colornames.Deepskyblue, true)
-	vector.DrawFilledRect(wf.Widget.Image, flagX, flagY+radius, radius, float32(flagHeight)-2*radius, colornames.Deepskyblue, true)
-	vector.DrawFilledRect(wf.Widget.Image, flagX+float32(flagWidth)-radius, flagY+radius, radius, float32(flagHeight)-2*radius, colornames.Deepskyblue, true)
+	// Measure the actual letter width and calculate centering offset
+	letterWidth, _ := text.Measure(letter, *wf.SliceFlagFace, 0)
+	bgWidth := float64(wf.SliceFlagBg.Bounds().Dx())
+	centerOffsetX := (bgWidth - letterWidth) / 2
 
-	// Draw the letter text
+	// Draw the letter text centered
 	textOpts := &text.DrawOptions{}
-	textOpts.GeoM.Translate(float64(flagX)+padding, float64(flagY)+padding)
+	textOpts.GeoM.Translate(flagX+centerOffsetX, flagY+sliceFlagPadding)
 	textOpts.ColorScale.ScaleWithColor(colornames.Darkslategray)
-	text.Draw(wf.Widget.Image, letter, *face, textOpts)
+	text.Draw(wf.Widget.Image, letter, *wf.SliceFlagFace, textOpts)
 }
 
 func (wf *Waterfall) drawSliceMarker(slice *Slice, letter string, u *UI) {
