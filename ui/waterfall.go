@@ -117,22 +117,25 @@ func (u *UI) ShowWaterfall() {
 	u.state = MainState
 }
 
+func (wfw *WaterfallWidgets) GetActiveSlice() *Slice {
+	for _, slice := range wfw.Slices {
+		if slice.Data.Active {
+			return slice
+		}
+	}
+	return nil
+}
+
 func (wf *WaterfallWidgets) Update(u *UI) {
 	wf.Waterfall.Update(u)
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		for _, slice := range wf.Slices {
-			if slice.Data.Active {
-				u.RadioShim.TuneSliceStep(slice.Data, -1)
-				break
-			}
+		if slice := wf.GetActiveSlice(); slice != nil {
+			go u.RadioShim.TuneSliceStep(slice.Data, -1)
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-		for _, slice := range wf.Slices {
-			if slice.Data.Active {
-				u.RadioShim.TuneSliceStep(slice.Data, 1)
-				break
-			}
+		if slice := wf.GetActiveSlice(); slice != nil {
+			go u.RadioShim.TuneSliceStep(slice.Data, 1)
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
@@ -151,11 +154,8 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 				now := time.Now()
 				if time.Since(wf.ClickTime) < 200*time.Millisecond {
 					freq := wf.DispLowLatch + (float64(args.OffsetX)/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-					for _, slice := range wfw.Slices {
-						if slice.Data.Active {
-							u.RadioShim.TuneSlice(slice.Data, freq, true)
-							break
-						}
+					if slice := wfw.GetActiveSlice(); slice != nil {
+						go u.RadioShim.TuneSlice(slice.Data, freq, true)
 					}
 				}
 				wf.ClickTime = now
