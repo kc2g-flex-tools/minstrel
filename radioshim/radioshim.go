@@ -13,6 +13,7 @@ type Shim interface {
 	SetSliceMode(int, string)
 	SetSliceRXAnt(int, string)
 	SetSliceTXAnt(int, string)
+	SetSliceTX(int)
 	CenterWaterfallAt(float64)
 	ActivateSlice(int)
 	TuneSliceStep(*SliceData, int)

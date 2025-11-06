@@ -84,6 +84,13 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(4)),
 		)),
 		widget.ContainerOpts.BackgroundImage(s.LetterBgRX),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.MouseButtonPressedHandler(func(_ *widget.WidgetMouseButtonPressedEventArgs) {
+				if !s.Data.TX {
+					u.RadioShim.SetSliceTX(s.Data.Index)
+				}
+			}),
+		),
 	)
 	s.Letter = widget.NewText(
 		widget.TextOpts.Text(letter, u.Font("Roboto-Semibold-36"), sliceRXTextColor),
