@@ -152,7 +152,7 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 		widget.GraphicOpts.WidgetOpts(
 			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
 				now := time.Now()
-				if time.Since(wf.ClickTime) < 200*time.Millisecond {
+				if time.Since(wf.ClickTime) < 400*time.Millisecond {
 					freq := wf.DispLowLatch + (float64(args.OffsetX)/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
 					if slice := wfw.GetActiveSlice(); slice != nil {
 						go u.RadioShim.TuneSlice(slice.Data, freq, true)
