@@ -145,11 +145,50 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 	wf.Container.RequestRelayout()
 }
 
+type wfDragDropper struct {
+	container *widget.Container
+	u         *UI
+	wfw       *WaterfallWidgets
+}
+
+func (d *wfDragDropper) Create(parent widget.HasWidget) (*widget.Container, interface{}) {
+	d.container = widget.NewContainer()
+	return d.container, nil
+}
+
+func (d *wfDragDropper) Update(canDrop bool, targetWidget widget.HasWidget, dragData interface{}) {
+	wf := d.wfw.Waterfall
+	xPos := float64(d.container.GetWidget().Rect.Min.X)
+	if wf.Drag.Active {
+		if wf.Drag.What == "waterfall" {
+			delta := wf.Drag.Start - xPos
+			freq := wf.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+			go d.u.RadioShim.CenterWaterfallAt(freq)
+		} else {
+			newTuneX := xPos + wf.Drag.Aux
+			freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+			go d.u.RadioShim.TuneSlice(d.wfw.Slices[wf.Drag.What].Data, freq, true)
+		}
+	} else {
+		log.Println("how are we in wfDragDropper.Update with no active drag?")
+	}
+}
+
+func (d *wfDragDropper) EndDrag(dropped bool, sourceWidget widget.HasWidget, dragData interface{}) {
+	d.wfw.Waterfall.Drag = DragData{}
+}
+
 func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 	wf := &Waterfall{}
 	wf.Widget = widget.NewGraphic(
 		widget.GraphicOpts.Image(ebiten.NewImage(1, 1)),
 		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.EnableDragAndDrop(
+				widget.NewDragAndDrop(
+					widget.DragAndDropOpts.ContentsCreater(&wfDragDropper{u: u, wfw: wfw}),
+					widget.DragAndDropOpts.MinDragStartDistance(4),
+				),
+			),
 			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
 				now := time.Now()
 				if time.Since(wf.ClickTime) < 400*time.Millisecond {
@@ -181,19 +220,6 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 					}
 				}
 			}),
-			widget.WidgetOpts.CursorMoveHandler(func(args *widget.WidgetCursorMoveEventArgs) {
-				if wf.Drag.Active && math.Abs(float64(args.OffsetX)-wf.Drag.Start) >= 4 {
-					if wf.Drag.What == "waterfall" {
-						delta := wf.Drag.Start - float64(args.OffsetX)
-						freq := wf.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-						u.RadioShim.CenterWaterfallAt(freq)
-					} else {
-						newTuneX := float64(args.OffsetX) + wf.Drag.Aux
-						freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-						u.RadioShim.TuneSlice(wfw.Slices[wf.Drag.What].Data, freq, true)
-					}
-				}
-			}),
 			widget.WidgetOpts.ScrolledHandler(func(args *widget.WidgetScrolledEventArgs) {
 				// Scroll up (positive Y) tunes up, scroll down (negative Y) tunes down
 				if args.Y != 0 {
@@ -201,9 +227,6 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 						go u.RadioShim.TuneSliceStep(slice.Data, int(args.Y))
 					}
 				}
-			}),
-			widget.WidgetOpts.MouseButtonReleasedHandler(func(args *widget.WidgetMouseButtonReleasedEventArgs) {
-				wf.Drag = DragData{}
 			}),
 		),
 	)
