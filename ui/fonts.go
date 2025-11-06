@@ -7,7 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/kc2g-flex-tools/minstrel/assets"
-	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
+	"github.com/kc2g-flex-tools/minstrel/errutil"
 )
 
 type variation struct {

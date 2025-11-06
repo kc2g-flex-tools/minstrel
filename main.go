@@ -13,6 +13,7 @@ import (
 	"github.com/kc2g-flex-tools/minstrel/audio"
 	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/midi"
+	"github.com/kc2g-flex-tools/minstrel/radio"
 	"github.com/kc2g-flex-tools/minstrel/ui"
 )
 
@@ -62,7 +63,7 @@ func main() {
 	midiCtx := midi.NewMIDI(config.MIDI, eventBus)
 
 	// Create RadioState before UI - it now owns discovery
-	rs := NewRadioState(audioCtx, midiCtx, eventBus, config.Station, config.Profile)
+	rs := radio.NewRadioState(audioCtx, midiCtx, eventBus, config.Station, config.Profile)
 
 	// Create UI with event bus
 	u := ui.NewUI(config.UI, eventBus)

@@ -1,7 +1,7 @@
 // Slice state extraction and control operations
 // Extracted from flexclient.go on 2025-11-02
 
-package main
+package radio
 
 import (
 	"context"
@@ -13,9 +13,9 @@ import (
 
 	"github.com/kc2g-flex-tools/flexclient"
 
+	"github.com/kc2g-flex-tools/minstrel/errutil"
 	"github.com/kc2g-flex-tools/minstrel/events"
-	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
-	"github.com/kc2g-flex-tools/minstrel/pkg/format"
+	"github.com/kc2g-flex-tools/minstrel/format"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 

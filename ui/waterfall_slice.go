@@ -9,7 +9,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/colornames"
 
-	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
+	"github.com/kc2g-flex-tools/minstrel/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 

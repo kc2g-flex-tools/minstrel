@@ -1,7 +1,7 @@
 // Waterfall VITA packet processing and display control
 // Extracted from flexclient.go on 2025-11-02
 
-package main
+package radio
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
 
+	"github.com/kc2g-flex-tools/minstrel/errutil"
 	"github.com/kc2g-flex-tools/minstrel/events"
-	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 )
 
 func (rs *RadioState) updateWaterfall(pkt flexclient.VitaPacket) {

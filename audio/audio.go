@@ -11,14 +11,14 @@ import (
 	"github.com/jfreymuth/pulse/proto"
 	"github.com/kc2g-flex-tools/flexclient"
 	"github.com/kc2g-flex-tools/minstrel/opus"
-	"github.com/kc2g-flex-tools/minstrel/pkg/radio"
+	"github.com/kc2g-flex-tools/minstrel/types"
 	opuslib "gopkg.in/hraban/opus.v2"
 )
 
 // VitaOpusPacket represents a VITA packet for Opus audio transmission
 type VitaOpusPacket struct {
 	header   vita.VitaHeader
-	streamID radio.StreamID
+	streamID types.StreamID
 	classID  vita.VitaClassID
 	payload  []byte
 }
@@ -52,7 +52,7 @@ type Audio struct {
 	txMutex    sync.Mutex
 	txRunning  bool
 	txClient   *flexclient.FlexClient
-	txStreamID *radio.StreamID
+	txStreamID *types.StreamID
 	txPacket   *VitaOpusPacket
 	txSeq      uint16
 	txWriter   *TXAudioWriter
@@ -110,7 +110,7 @@ func NewAudio() *Audio {
 }
 
 // StartTX starts transmit audio recording and encoding
-func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *radio.StreamID) {
+func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *types.StreamID) {
 	a.txMutex.Lock()
 	defer a.txMutex.Unlock()
 
@@ -132,7 +132,7 @@ func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *radio.StreamID)
 		pulse.RecordRawOption(func(rs *proto.CreateRecordStream) {
 			// Ask pulse to give us exactly 10ms frames (240 samples at 24kHz) * 2ch * 4bytes/sample = 1920 bytes
 			// Opus encoding will fail if the frame size isn't exactly a supported size.
-			rs.BufferFragSize = 1920
+			rs.BufferFragSize = 3840
 		}),
 	)
 	if err != nil {

@@ -1,7 +1,7 @@
 // RadioState lifecycle management and main event loop
 // Extracted from flexclient.go on 2025-11-02
 
-package main
+package radio
 
 import (
 	"context"
@@ -14,12 +14,12 @@ import (
 	"github.com/kc2g-flex-tools/flexclient"
 
 	"github.com/kc2g-flex-tools/minstrel/audio"
+	"github.com/kc2g-flex-tools/minstrel/errutil"
 	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/midi"
-	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
-	"github.com/kc2g-flex-tools/minstrel/pkg/persistence"
-	"github.com/kc2g-flex-tools/minstrel/pkg/radio"
+	"github.com/kc2g-flex-tools/minstrel/persistence"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
+	"github.com/kc2g-flex-tools/minstrel/types"
 )
 
 
@@ -39,9 +39,9 @@ type RadioState struct {
 	EventBus        *events.Bus
 	MIDI            *midi.MIDI
 	ClientID        string
-	WaterfallStream radio.StreamID
-	RXAudioStream   radio.StreamID
-	TXAudioStream   radio.StreamID
+	WaterfallStream types.StreamID
+	RXAudioStream   types.StreamID
+	TXAudioStream   types.StreamID
 	wfState         wfState
 	Slices          radioshim.SliceMap
 	stationName     string
@@ -184,7 +184,7 @@ func (rs *RadioState) Run(ctx context.Context) {
 		case st := <-waterfalls.Updates:
 			if st.CurrentState["client_handle"] == rs.ClientID {
 				streamStr := strings.TrimPrefix(st.Object, "display waterfall 0x")
-				streamId := radio.MustParseStreamID(streamStr, "waterfall stream ID")
+				streamId := types.MustParseStreamID(streamStr, "waterfall stream ID")
 				if streamId.IsValid() {
 					if !rs.WaterfallStream.IsValid() {
 						log.Println("my waterfall is", streamStr)
@@ -206,7 +206,7 @@ func (rs *RadioState) Run(ctx context.Context) {
 		case st := <-streams.Updates:
 			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_rx" && st.CurrentState["compression"] == "OPUS" {
 				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
-				streamId := radio.MustParseStreamID(streamStr, "RX audio stream ID")
+				streamId := types.MustParseStreamID(streamStr, "RX audio stream ID")
 				if streamId.IsValid() {
 					log.Println("got opus RX stream", streamStr)
 					rs.RXAudioStream = streamId
@@ -214,7 +214,7 @@ func (rs *RadioState) Run(ctx context.Context) {
 			}
 			if st.CurrentState["client_handle"] == rs.ClientID && st.CurrentState["type"] == "remote_audio_tx" && st.CurrentState["compression"] == "OPUS" {
 				streamStr := strings.TrimPrefix(st.Object, "stream 0x")
-				streamId := radio.MustParseStreamID(streamStr, "TX audio stream ID")
+				streamId := types.MustParseStreamID(streamStr, "TX audio stream ID")
 				if streamId.IsValid() {
 					log.Println("got opus TX stream", streamStr)
 					rs.TXAudioStream = streamId
@@ -236,10 +236,10 @@ func (rs *RadioState) Run(ctx context.Context) {
 				Params: st.CurrentState,
 			})
 		case pkt := <-vita:
-			if radio.StreamID(pkt.Preamble.Stream_id) == rs.WaterfallStream {
+			if types.StreamID(pkt.Preamble.Stream_id) == rs.WaterfallStream {
 				rs.updateWaterfall(pkt)
 			}
-			if radio.StreamID(pkt.Preamble.Stream_id) == rs.RXAudioStream {
+			if types.StreamID(pkt.Preamble.Stream_id) == rs.RXAudioStream {
 				rs.playOpus(pkt)
 			}
 		}

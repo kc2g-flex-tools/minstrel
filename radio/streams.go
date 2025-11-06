@@ -1,7 +1,7 @@
 // Audio stream lifecycle and audio packet processing
 // Extracted from flexclient.go on 2025-11-02
 
-package main
+package radio
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/hb9fxq/flexlib-go/vita"
 	"github.com/kc2g-flex-tools/flexclient"
 
-	"github.com/kc2g-flex-tools/minstrel/pkg/radio"
+	"github.com/kc2g-flex-tools/minstrel/types"
 )
 
 func (rs *RadioState) playOpus(pkt flexclient.VitaPacket) {
@@ -25,7 +25,7 @@ func (rs *RadioState) createAudioStream(streamType string) {
 }
 
 // removeStream removes a stream by ID
-func (rs *RadioState) removeStream(streamID radio.StreamID) {
+func (rs *RadioState) removeStream(streamID types.StreamID) {
 	if !streamID.IsValid() {
 		return
 	}
