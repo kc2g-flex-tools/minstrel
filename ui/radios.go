@@ -75,6 +75,9 @@ func (u *UI) SetRadios(radios []radioProps) {
 	for i := range radios {
 		entries[i] = &radios[i]
 	}
-	entries = append(entries, "Enter IP address...", "Exit", "Shutdown")
+	entries = append(entries, "Enter IP address...", "Exit")
+	if u.cfg.Kiosk {
+		entries = append(entries, "Shutdown")
+	}
 	u.Widgets.Radios.List.SetEntries(entries)
 }
