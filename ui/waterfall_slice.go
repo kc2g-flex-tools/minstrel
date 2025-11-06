@@ -3,27 +3,41 @@ package ui
 import (
 	"image/color"
 
+	ebimage "github.com/ebitenui/ebitenui/image"
 	"github.com/ebitenui/ebitenui/widget"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/colornames"
 
 	"github.com/kc2g-flex-tools/minstrel/pkg/errutil"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
 
+// Slice indicator colors
+var (
+	sliceRXBgColor   = colornames.Deepskyblue
+	sliceRXTextColor = colornames.Darkslategray
+	sliceTXBgColor   = color.RGBA{0xff, 0x3f, 0x3f, 0xff}
+	sliceTXTextColor = colornames.Lightgray
+)
+
 type Slice struct {
-	Container      *widget.Container
-	CreateButton   *widget.Container
-	SlicePanel     *widget.Container
-	Letter         *widget.Text
-	Frequency      *widget.Text
-	RXAnt          *widget.Text
-	TXAnt          *widget.Text
-	Mode           *widget.Text
-	Data           *radioshim.SliceData
-	FootprintLeft  float64
-	FootprintRight float64
-	TuneX          float64
-	VolumeSlider   *widget.Slider // Volume slider property
+	Container       *widget.Container
+	CreateButton    *widget.Container
+	SlicePanel      *widget.Container
+	Letter          *widget.Text
+	LetterContainer *widget.Container
+	LetterBgRX      *ebimage.NineSlice
+	LetterBgTX      *ebimage.NineSlice
+	Frequency       *widget.Text
+	RXAnt           *widget.Text
+	TXAnt           *widget.Text
+	Mode            *widget.Text
+	Data            *radioshim.SliceData
+	FootprintLeft   float64
+	FootprintRight  float64
+	TuneX           float64
+	VolumeSlider    *widget.Slider // Volume slider property
 }
 
 func (u *UI) MakeSlice(letter string) *Slice {
@@ -61,13 +75,22 @@ func (u *UI) MakeSlice(letter string) *Slice {
 			widget.RowLayoutOpts.Spacing(8),
 		)),
 	)
-	letterContainer := u.MakeRoundedRect(colornames.Deepskyblue, color.NRGBA{}, 4)
+	// Create both RX and TX backgrounds
+	s.LetterBgRX = createLetterBackground(sliceRXBgColor)
+	s.LetterBgTX = createLetterBackground(sliceTXBgColor)
+
+	s.LetterContainer = widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(4)),
+		)),
+		widget.ContainerOpts.BackgroundImage(s.LetterBgRX),
+	)
 	s.Letter = widget.NewText(
-		widget.TextOpts.Text(letter, u.Font("Roboto-Semibold-36"), colornames.Darkslategray),
+		widget.TextOpts.Text(letter, u.Font("Roboto-Semibold-36"), sliceRXTextColor),
 		widget.TextOpts.Padding(widget.NewInsetsSimple(0)),
 	)
-	letterContainer.AddChild(s.Letter)
-	row1.AddChild(letterContainer)
+	s.LetterContainer.AddChild(s.Letter)
+	row1.AddChild(s.LetterContainer)
 	s.RXAnt = u.MakeText("Roboto-Condensed-24", colornames.Deepskyblue)
 	s.RXAnt.GetWidget().MouseButtonPressedEvent.AddHandler(func(_ any) {
 		var antennas []any
@@ -223,6 +246,15 @@ func (w *WaterfallWidgets) UpdateSlices(slices radioshim.SliceMap) {
 		widg.Container.RemoveChild(widg.CreateButton)
 		widg.Container.AddChild(widg.SlicePanel)
 
+		// Update letter background color based on TX status
+		if slice.TX {
+			widg.LetterContainer.SetBackgroundImage(widg.LetterBgTX)
+			widg.Letter.SetColor(sliceTXTextColor)
+		} else {
+			widg.LetterContainer.SetBackgroundImage(widg.LetterBgRX)
+			widg.Letter.SetColor(sliceRXTextColor)
+		}
+
 		widg.Frequency.Label = slice.FreqFormatted
 		widg.Mode.Label = slice.Mode
 		widg.RXAnt.Label = slice.RXAnt
@@ -231,4 +263,12 @@ func (w *WaterfallWidgets) UpdateSlices(slices radioshim.SliceMap) {
 			widg.VolumeSlider.Current = 100 - slice.Volume
 		}
 	}
+}
+
+func createLetterBackground(bgColor color.Color) *ebimage.NineSlice {
+	radius := 4
+	img := ebiten.NewImage(2*radius+1, 2*radius+1)
+	r := float32(radius)
+	vector.DrawFilledCircle(img, r, r, r, bgColor, true)
+	return ebimage.NewNineSliceSimple(img, radius, 1)
 }

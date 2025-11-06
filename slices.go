@@ -40,6 +40,7 @@ func (rs *RadioState) updateGUI() {
 			out.TXAntList = strings.Split(txAntList, ",")
 		}
 		out.Active = slice["active"] != "0"
+		out.TX = slice["tx"] == "1"
 		out.FiltLow = errutil.MustParseFloat(slice["filter_lo"], "slice filter_lo")
 		out.FiltHigh = errutil.MustParseFloat(slice["filter_hi"], "slice filter_hi")
 		out.Index = errutil.MustParseInt(strings.TrimPrefix(objName, "slice "), "slice index")

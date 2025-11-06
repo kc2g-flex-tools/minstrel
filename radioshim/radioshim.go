@@ -31,6 +31,7 @@ type Shim interface {
 type SliceData struct {
 	Present       bool
 	Active        bool
+	TX            bool
 	Index         int
 	Freq          float64
 	FreqFormatted string
