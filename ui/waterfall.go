@@ -194,6 +194,14 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 					}
 				}
 			}),
+			widget.WidgetOpts.ScrolledHandler(func(args *widget.WidgetScrolledEventArgs) {
+				// Scroll up (positive Y) tunes up, scroll down (negative Y) tunes down
+				if args.Y != 0 {
+					if slice := wfw.GetActiveSlice(); slice != nil {
+						go u.RadioShim.TuneSliceStep(slice.Data, int(args.Y))
+					}
+				}
+			}),
 			widget.WidgetOpts.MouseButtonReleasedHandler(func(args *widget.WidgetMouseButtonReleasedEventArgs) {
 				wf.Drag = DragData{}
 			}),
