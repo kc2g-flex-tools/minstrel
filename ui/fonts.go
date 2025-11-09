@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+
 	"github.com/kc2g-flex-tools/minstrel/assets"
 	"github.com/kc2g-flex-tools/minstrel/errutil"
 )
@@ -27,13 +28,12 @@ type fontspec struct {
 }
 
 var fontFiles = map[string]fontspec{
-	"Roboto":                 fontspec{Filename: "Roboto-Variable.ttf"},
-	"Roboto-Semibold":        fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 600}}},
-	"Roboto-Condensed":       fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wdth"), Value: 87.5}}},
-	"Roboto-Light":           fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 0}}},
-	"Roboto-Condensed-Light": fontspec{Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}, {Tag: text.MustParseTag("wdth"), Value: 87.5}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 0}}},
-	"Icons":                  fontspec{Filename: "MaterialSymbolsSharp-Regular.ttf"},
-	"Icons-Filled":           fontspec{Filename: "MaterialSymbolsSharp_Filled-Regular.ttf"},
+	"Roboto":                 {Filename: "Roboto-Variable.ttf"},
+	"Roboto-Semibold":        {Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 600}}},
+	"Roboto-Condensed":       {Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wdth"), Value: 87.5}}},
+	"Roboto-Light":           {Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 0}}},
+	"Roboto-Condensed-Light": {Filename: "Roboto-Variable.ttf", Variations: []variation{{Tag: text.MustParseTag("wght"), Value: 300}, {Tag: text.MustParseTag("wdth"), Value: 87.5}}, Features: []feature{{Tag: text.MustParseTag("pnum"), Value: 0}}},
+	"Icons":                  {Filename: "MaterialSymbolsSharp-Regular.ttf"},
 }
 
 var sources sync.Map // map[string]*text.GoTextFaceSource

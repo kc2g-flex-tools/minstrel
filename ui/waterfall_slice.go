@@ -38,6 +38,7 @@ type Slice struct {
 	FootprintRight  float64
 	TuneX           float64
 	VolumeSlider    *widget.Slider // Volume slider property
+	ActiveIndicator *widget.Text   // Active slice indicator icon
 }
 
 func (u *UI) MakeSlice(letter string) *Slice {
@@ -66,7 +67,7 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	display := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
-			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(12)),
+			widget.RowLayoutOpts.Padding(widget.NewInsetsSimple(8)),
 		)),
 	)
 	row1 := widget.NewContainer(
@@ -194,8 +195,44 @@ func (u *UI) MakeSlice(letter string) *Slice {
 	buttons := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
 			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(0),
+			widget.RowLayoutOpts.Padding(&widget.Insets{}),
 		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				Position: widget.RowLayoutPositionStart,
+			}),
+		),
 	)
+	// Active slice indicator button
+	activeContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(&widget.Insets{Bottom: 8}),
+		)),
+		widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(colornames.Black)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.MouseButtonPressedHandler(func(_ *widget.WidgetMouseButtonPressedEventArgs) {
+				u.RadioShim.ActivateSlice(s.Data.Index)
+			}),
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				MaxWidth:  24,
+				MaxHeight: 24,
+			}),
+		),
+	)
+	s.ActiveIndicator = widget.NewText(
+		widget.TextOpts.Text("\ue836", u.Font("Icons-16"), colornames.White),
+		widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionStart),
+		widget.TextOpts.Padding(widget.NewInsetsSimple(2)),
+		widget.TextOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				HorizontalPosition: widget.AnchorLayoutPositionEnd,
+				VerticalPosition:   widget.AnchorLayoutPositionStart,
+			}),
+		),
+	)
+	activeContainer.AddChild(s.ActiveIndicator)
+	buttons.AddChild(activeContainer)
 	// Close button
 	buttons.AddChild(u.MakeButton("Icons-16", "\ue5cd", func(*widget.ButtonClickedEventArgs) {
 		u.RadioShim.RemoveSlice(s.Data.Index)
@@ -268,6 +305,12 @@ func (w *WaterfallWidgets) UpdateSlices(slices radioshim.SliceMap) {
 		widg.TXAnt.Label = slice.TXAnt
 		if widg.VolumeSlider != nil {
 			widg.VolumeSlider.Current = 100 - slice.Volume
+		}
+		// Update active indicator icon
+		if slice.Active {
+			widg.ActiveIndicator.Label = "\ue837" // Filled circle
+		} else {
+			widg.ActiveIndicator.Label = "\ue836" // Open circle
 		}
 	}
 }
