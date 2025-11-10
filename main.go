@@ -21,7 +21,6 @@ type Config struct {
 	Station string `dialsdesc:"Station name"`
 	Profile string `dialsdesc:"Global profile to load on startup"`
 	UI      *ui.Config
-	MIDI    *midi.Config
 }
 
 var config *Config
@@ -36,7 +35,6 @@ func defaultConfig() *Config {
 		Station: stationName,
 		Profile: "",
 		UI:      ui.DefaultConfig(),
-		MIDI:    midi.DefaultConfig(),
 	}
 }
 
@@ -60,7 +58,9 @@ func main() {
 
 	// Create audio context
 	audioCtx := audio.NewAudio()
-	midiCtx := midi.NewMIDI(config.MIDI, eventBus)
+
+	// Create MIDI context with default config (will be configured via UI)
+	midiCtx := midi.NewMIDI(midi.DefaultConfig(), eventBus)
 
 	// Create RadioState before UI - it now owns discovery
 	rs := radio.NewRadioState(audioCtx, midiCtx, eventBus, config.Station, config.Profile)
@@ -69,6 +69,7 @@ func main() {
 	u := ui.NewUI(config.UI, eventBus)
 	u.RadioShim = rs
 	u.AudioShim = audioCtx
+	u.MIDIShim = midiCtx
 
 	// Start UI event handler
 	go u.HandleEvents(eventBus.Subscribe(100))

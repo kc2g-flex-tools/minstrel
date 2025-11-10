@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"image/color"
 	"log"
 	"math"
@@ -57,6 +58,11 @@ type UI struct {
 	Widgets        widgets
 	RadioShim      radioshim.Shim
 	AudioShim      audioshim.Shim
+	MIDIShim       interface {
+		Connect(ctx context.Context, portName string, rs radioshim.Shim) error
+		Disconnect()
+		Status() (connected bool, port string, errorMsg string)
+	}
 	deferred       []func()
 	cfg            *Config
 	eventBus       *events.Bus

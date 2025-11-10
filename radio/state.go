@@ -130,14 +130,21 @@ func (rs *RadioState) Run(ctx context.Context) {
 		Updates: make(chan flexclient.StateUpdate, 100),
 	})
 
-	clientStore, err := persistence.NewClientStore()
+	settingsStore, err := persistence.NewSettingsStore()
 	if err != nil {
-		log.Fatal("failed to create client store:", err)
+		log.Fatal("failed to create settings store:", err)
+	}
+
+	// Load settings (includes client ID and MIDI config)
+	settings, err := settingsStore.Load()
+	if err != nil {
+		log.Println("failed to load settings:", err)
+		settings = &persistence.Settings{}
 	}
 
 	var ClientUUID string
-	ClientUUID, err = clientStore.Load()
-	if err == nil {
+	ClientUUID = settings.ClientID
+	if ClientUUID != "" {
 		fc.SendAndWait("client gui " + ClientUUID)
 		fmt.Println("connected with client ID " + ClientUUID)
 	} else {
@@ -146,12 +153,21 @@ func (rs *RadioState) Run(ctx context.Context) {
 			log.Fatal(res)
 		}
 		ClientUUID = res.Message
-		if err := clientStore.Save(ClientUUID); err != nil {
+		settings.ClientID = ClientUUID
+		if err := settingsStore.Save(settings); err != nil {
 			log.Println("failed to save client ID:", err)
 		}
 		log.Println("got new client ID " + ClientUUID)
 	}
 	rs.ClientID = "0x" + fc.ClientID()
+
+	// Auto-connect to MIDI device if one was previously configured
+	if settings.MIDI.Port != "" && settings.MIDI.Port != "None" {
+		log.Printf("Auto-connecting to MIDI device: %s", settings.MIDI.Port)
+		if err := rs.MIDI.Connect(ctx, settings.MIDI.Port, rs); err != nil {
+			log.Printf("Failed to auto-connect MIDI: %v", err)
+		}
+	}
 
 	fc.SendAndWait("client program Minstrel")
 	fc.SendAndWait("client station " + strings.ReplaceAll(rs.stationName, " ", "\x7f"))
@@ -168,7 +184,6 @@ func (rs *RadioState) Run(ctx context.Context) {
 		log.Fatal(err)
 	}
 	go fc.RunUDP()
-	go rs.MIDI.Run(ctx, rs)
 
 	notif := make(chan struct{}, 1)
 	fc.SetStateNotify(notif)

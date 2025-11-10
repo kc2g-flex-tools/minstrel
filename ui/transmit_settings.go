@@ -38,9 +38,17 @@ type TransmitSettings struct {
 	RXDeviceButton *widget.Button
 	TXDeviceButton *widget.Button
 
+	// MIDI tab widgets
+	MIDIDeviceButton *widget.Button
+	MIDIStatusLabel  *widget.Text
+	MIDIConnectBtn   *widget.Button
+
 	// Audio device state
 	selectedRXDevice string
 	selectedTXDevice string
+
+	// MIDI device state
+	selectedMIDIDevice string
 }
 
 func (u *UI) MakeTransmitSettingsWindow() *TransmitSettings {
@@ -63,9 +71,17 @@ func (u *UI) MakeTransmitSettingsWindow() *TransmitSettings {
 		))),
 	)
 
+	midiTab := widget.NewTabBookTab(
+		widget.TabBookTabOpts.Label("MIDI"),
+		widget.TabBookTabOpts.ContainerOpts(widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(12),
+		))),
+	)
+
 	// Create TabBook with proper styling
 	tabBook := widget.NewTabBook(
-		widget.TabBookOpts.Tabs(phoneTab, audioTab),
+		widget.TabBookOpts.Tabs(phoneTab, audioTab, midiTab),
 		widget.TabBookOpts.TabButtonImage(u.makeTabButtonImage()),
 		widget.TabBookOpts.TabButtonText(u.Font("Roboto-16"), &widget.ButtonTextColor{
 			Idle:     colornames.White,
@@ -82,6 +98,9 @@ func (u *UI) MakeTransmitSettingsWindow() *TransmitSettings {
 
 	// Populate Audio tab
 	u.populateAudioTab(ts, audioTab)
+
+	// Populate MIDI tab
+	u.populateMIDITab(ts, midiTab)
 
 	// Create main container with tabs and close button
 	contents := widget.NewContainer(
@@ -791,4 +810,106 @@ func (u *UI) makeDeviceSelectionButton(fontName string, text string, handler fun
 		),
 		widget.ButtonOpts.TextPosition(widget.TextPositionStart, widget.TextPositionCenter),
 	)
+}
+
+// populateMIDITab populates the MIDI tab with device selection and status display
+func (u *UI) populateMIDITab(ts *TransmitSettings, container *widget.TabBookTab) {
+	// MIDI Device Selection
+	deviceRow := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(4),
+		)),
+	)
+	deviceLabel := widget.NewText(
+		widget.TextOpts.Text("MIDI Device", u.Font("Roboto-16"), colornames.White),
+	)
+	ts.MIDIDeviceButton = u.makeDeviceSelectionButton("Roboto-16", "None", func(args *widget.ButtonClickedEventArgs) {
+		// Get list of MIDI devices
+		u.GetMIDIDevices(func(devices []string) {
+			// Always include "None" as first option
+			devicesWithNone := make([]string, 0, len(devices)+1)
+			devicesWithNone = append(devicesWithNone, "None")
+			devicesWithNone = append(devicesWithNone, devices...)
+
+			// Convert to []any for dropdown
+			devicesAny := make([]any, len(devicesWithNone))
+			for i, dev := range devicesWithNone {
+				devicesAny[i] = dev
+			}
+
+			// Find current selection
+			var selected interface{} = devicesAny[0]
+			currentLabel := ts.MIDIDeviceButton.Text().Label
+			for _, dev := range devicesAny {
+				if dev.(string) == currentLabel {
+					selected = dev
+					break
+				}
+			}
+
+			// Show dropdown
+			window := u.MakeDropdownWindow(
+				ts.MIDIDeviceButton,
+				devicesAny,
+				selected,
+				func(item any) string {
+					return item.(string)
+				},
+				func(item any, ok bool) {
+					if ok && item != nil {
+						deviceName := item.(string)
+						ts.MIDIDeviceButton.Text().Label = deviceName
+						ts.selectedMIDIDevice = deviceName
+
+						// Update status based on selection
+						if deviceName == "None" {
+							ts.MIDIStatusLabel.Label = "Status: Disconnecting..."
+						} else {
+							ts.MIDIStatusLabel.Label = "Status: Connecting..."
+						}
+
+						// Connect to device in background
+						go u.ConnectMIDIDevice(deviceName, ts)
+					}
+				},
+			)
+			u.ShowDropdownWindow(window, ts.MIDIDeviceButton)
+		})
+	})
+	deviceRow.AddChild(deviceLabel)
+	deviceRow.AddChild(ts.MIDIDeviceButton)
+	container.AddChild(deviceRow)
+
+	// Status display
+	statusRow := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionVertical),
+			widget.RowLayoutOpts.Spacing(4),
+		)),
+	)
+	ts.MIDIStatusLabel = widget.NewText(
+		widget.TextOpts.Text("Status: Not connected", u.Font("Roboto-16"), colornames.Gray),
+	)
+	statusRow.AddChild(ts.MIDIStatusLabel)
+	container.AddChild(statusRow)
+
+	// Connect/Reconnect button
+	buttonRow := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewRowLayout(
+			widget.RowLayoutOpts.Direction(widget.DirectionHorizontal),
+			widget.RowLayoutOpts.Spacing(8),
+		)),
+	)
+	ts.MIDIConnectBtn = u.MakeButton("Roboto-16", "Connect", func(args *widget.ButtonClickedEventArgs) {
+		if ts.selectedMIDIDevice != "" && ts.selectedMIDIDevice != "None" {
+			ts.MIDIStatusLabel.Label = "Status: Connecting..."
+			go u.ConnectMIDIDevice(ts.selectedMIDIDevice, ts)
+		}
+	})
+	buttonRow.AddChild(ts.MIDIConnectBtn)
+	container.AddChild(buttonRow)
+
+	// Initialize status asynchronously
+	go u.UpdateMIDIStatus(ts)
 }
