@@ -26,10 +26,7 @@ has many bugs and limitations. However, it works well enough to make a basic voi
     * Compressor (DEXP)
     * VOX
     * AM carrier level
-
-### In progress
-
-* Support for MIDI devices (e.g. Lynovation CTR2) for tuning and PTT
+* MIDI controller support for tuning, volume adjustment, and PTT
 
 ### Planned
 
@@ -100,8 +97,7 @@ The RX antenna, TX antenna, current frequency, and mode are displayed in the sli
 on them. A slice's volume can be changed by clicking on the "speaker" icon in its panel, and a slice can be destroyed
 using the X icon.
 
-The currently active slice can also be tuned using the left and right keys on the keyboard, or an attached MIDI control
-knob (MIDI is an alpha feature, currently not enabled by default).
+The currently active slice can also be tuned using the left and right keys on the keyboard, or an attached MIDI controller.
 
 ### Remote Audio
 
@@ -127,8 +123,29 @@ using the VOX button on the main screen.
 * TUNE: Adjusts the tune power.
 * RF Power: Adjusts the transmit power.
 
-You can key the PTT using the spacebar, or the MOX button in the top center of the screen, or use a switch attached
-directly to the radio. VOX also works. PTT using a switch attached to the computer isn't supported yet.
+You can key the PTT using:
+
+* The spacebar
+* The MOX button in the top center of the screen
+* A MIDI controller
+* A footswitch or other device attached directly to the radio
+* VOX
+
+### MIDI Controllers
+
+Minstrel supports MIDI controllers for tuning, volume control, and PTT. To configure a MIDI controller:
+
+1. Open the Transmit Settings window (click the "gear" icon)
+2. Navigate to the "MIDI" tab
+3. Select your MIDI device from the dropdown (or select "None" to disable MIDI)
+4. The selected device will be automatically reconnected when you restart Minstrel
+
+MIDI controller functions:
+* **Control Change 100** (default): Tune the active slice VFO
+* **Control Change 102** (default): Adjust the active slice volume
+* **Note 31** (default): PTT (key down to transmit, key up to receive)
+
+The MIDI mapping values can be customized by editing the configuration, but there is no GUI for this yet.
 
 ## Tablet Mode
 
