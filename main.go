@@ -68,6 +68,7 @@ func main() {
 	// Create UI with event bus
 	u := ui.NewUI(config.UI, eventBus)
 	u.RadioShim = rs
+	u.AudioShim = audioCtx
 
 	// Start UI event handler
 	go u.HandleEvents(eventBus.Subscribe(100))

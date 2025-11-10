@@ -2,6 +2,7 @@ package audio
 
 import (
 	"encoding/binary"
+	"io"
 	"log"
 	"math"
 	"sync"
@@ -56,13 +57,26 @@ type Audio struct {
 	txPacket   *VitaOpusPacket
 	txSeq      uint16
 	txWriter   *TXAudioWriter
+
+	// Device selection
+	sinkDevice   string
+	sourceDevice string
+	deviceMutex  sync.RWMutex
+
+	// Player mutex to protect playback operations
+	playerMutex sync.Mutex
+
+	// Active readers (for closing when switching devices)
+	readerMutex sync.Mutex
+	activeReaders map[*PlaybackReader]bool
 }
 
 func NewAudio() *Audio {
 	audio := &Audio{
-		cbuf:     NewCircularBuf[[4]byte](2880),
-		cbufSize: 2880, // max cbuf latency: 240ms
-		wakeup:   make(chan struct{}),
+		cbuf:          NewCircularBuf[[4]byte](2880),
+		cbufSize:      2880, // max cbuf latency: 240ms
+		wakeup:        make(chan struct{}),
+		activeReaders: make(map[*PlaybackReader]bool),
 	}
 	pc, err := pulse.NewClient(
 		pulse.ClientApplicationName("Minstrel"),
@@ -71,8 +85,12 @@ func NewAudio() *Audio {
 		panic(err)
 	}
 	audio.Context = pc
+	reader := &PlaybackReader{audio: audio}
+	audio.readerMutex.Lock()
+	audio.activeReaders[reader] = true
+	audio.readerMutex.Unlock()
 	audio.player, err = pc.NewPlayback(
-		pulse.NewReader(audio, proto.FormatFloat32LE),
+		pulse.NewReader(reader, proto.FormatFloat32LE),
 		pulse.PlaybackChannels(proto.ChannelMap{proto.ChannelMono}),
 		pulse.PlaybackLatency(50.0/1000),
 		pulse.PlaybackSampleRate(24000),
@@ -123,10 +141,14 @@ func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *types.StreamID)
 	a.txRunning = true
 	a.txSeq = 0
 
-	// Create PulseAudio recorder
+	// Get selected source device
+	a.deviceMutex.RLock()
+	sourceDevice := a.sourceDevice
+	a.deviceMutex.RUnlock()
+
+	// Create PulseAudio recorder with optional device selection
 	var err error
-	a.recorder, err = a.Context.NewRecord(
-		a.txWriter,
+	opts := []pulse.RecordOption{
 		pulse.RecordStereo,
 		pulse.RecordSampleRate(24000),
 		pulse.RecordRawOption(func(rs *proto.CreateRecordStream) {
@@ -134,7 +156,19 @@ func (a *Audio) StartTX(client *flexclient.FlexClient, streamID *types.StreamID)
 			// Opus encoding will fail if the frame size isn't exactly a supported size.
 			rs.BufferFragSize = 3840
 		}),
-	)
+	}
+
+	// Add source device if specified
+	if sourceDevice != "" {
+		source, err := a.Context.SourceByID(sourceDevice)
+		if err != nil {
+			log.Printf("Failed to get source %s: %v, using default", sourceDevice, err)
+		} else {
+			opts = append(opts, pulse.RecordSource(source))
+		}
+	}
+
+	a.recorder, err = a.Context.NewRecord(a.txWriter, opts...)
 	if err != nil {
 		log.Println("Failed to create recorder:", err)
 		a.txRunning = false
@@ -270,6 +304,55 @@ func (a *Audio) Decode(data []byte) {
 	}
 }
 
+// PlaybackReader reads audio data from the circular buffer for PulseAudio playback
+type PlaybackReader struct {
+	audio  *Audio
+	closed bool
+	mu     sync.Mutex
+}
+
+func (r *PlaybackReader) Read(dest []byte) (n int, err error) {
+	r.mu.Lock()
+	if r.closed {
+		r.mu.Unlock()
+		return 0, io.EOF
+	}
+	r.mu.Unlock()
+
+	for n < len(dest) {
+		chunk, ok := r.audio.cbuf.PopFront()
+		if !ok {
+			if n > 0 {
+				return
+			}
+			// Check if closed while waiting
+			r.mu.Lock()
+			if r.closed {
+				r.mu.Unlock()
+				return 0, io.EOF
+			}
+			r.mu.Unlock()
+			// always return at least one sample. If we can't do that, wait for the buffer to fill.
+			<-r.audio.wakeup
+			continue
+		}
+		copy(dest[n:n+4], chunk[:])
+		n += 4
+	}
+	return
+}
+
+func (r *PlaybackReader) Format() byte {
+	return proto.FormatFloat32LE
+}
+
+func (r *PlaybackReader) Close() {
+	r.mu.Lock()
+	r.closed = true
+	r.mu.Unlock()
+}
+
+// Read implements the legacy interface for compatibility
 func (a *Audio) Read(dest []byte) (n int, err error) {
 	for n < len(dest) {
 		chunk, ok := a.cbuf.PopFront()
@@ -288,10 +371,83 @@ func (a *Audio) Read(dest []byte) (n int, err error) {
 }
 
 func (a *Audio) Start() {
+	a.playerMutex.Lock()
+	defer a.playerMutex.Unlock()
+
 	a.cbuf.Clear()
+
+	// Check if we need to recreate the player with a different device
+	a.deviceMutex.RLock()
+	sinkDevice := a.sinkDevice
+	a.deviceMutex.RUnlock()
+
+	if sinkDevice != "" && a.player != nil {
+		// Close existing player and recreate with new device
+		a.player.Stop()
+		a.player.Close()
+
+		// Get the sink by ID
+		sink, err := a.Context.SinkByID(sinkDevice)
+		if err != nil {
+			log.Printf("Failed to get sink %s: %v, using default", sinkDevice, err)
+			sink = nil
+		}
+
+		// Recreate player with selected sink
+		opts := []pulse.PlaybackOption{
+			pulse.PlaybackChannels(proto.ChannelMap{proto.ChannelMono}),
+			pulse.PlaybackLatency(50.0 / 1000),
+			pulse.PlaybackSampleRate(24000),
+		}
+		if sink != nil {
+			opts = append(opts, pulse.PlaybackSink(sink))
+		}
+
+		reader := &PlaybackReader{audio: a}
+		a.readerMutex.Lock()
+		a.activeReaders[reader] = true
+		a.readerMutex.Unlock()
+		a.player, err = a.Context.NewPlayback(pulse.NewReader(reader, proto.FormatFloat32LE), opts...)
+		if err != nil {
+			log.Printf("Failed to create playback stream: %v", err)
+			return
+		}
+	}
+
 	a.player.Start()
 }
 
 func (a *Audio) Pause() {
+	a.playerMutex.Lock()
+	defer a.playerMutex.Unlock()
+
 	a.player.Stop()
+}
+
+// SetSinkDevice sets the output device for RX audio
+func (a *Audio) SetSinkDevice(deviceID string) {
+	a.deviceMutex.Lock()
+	defer a.deviceMutex.Unlock()
+	a.sinkDevice = deviceID
+}
+
+// SetSourceDevice sets the input device for TX audio
+func (a *Audio) SetSourceDevice(deviceID string) {
+	a.deviceMutex.Lock()
+	defer a.deviceMutex.Unlock()
+	a.sourceDevice = deviceID
+}
+
+// GetSinkDevice returns the current sink device
+func (a *Audio) GetSinkDevice() string {
+	a.deviceMutex.RLock()
+	defer a.deviceMutex.RUnlock()
+	return a.sinkDevice
+}
+
+// GetSourceDevice returns the current source device
+func (a *Audio) GetSourceDevice() string {
+	a.deviceMutex.RLock()
+	defer a.deviceMutex.RUnlock()
+	return a.sourceDevice
 }

@@ -297,11 +297,19 @@ func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []a
 	}
 	list.EntrySelectedEvent.AddHandler(func(e any) {
 		args := e.(*widget.ListEntrySelectedEventArgs)
+
+		// Skip initial SetSelectedEntry call (not a user action)
 		if args.PreviousEntry == nil {
 			return
 		}
-		cb(args.Entry, true)
+
+		// Always close the window on any user click
 		window.widget.Close()
+
+		// Only trigger callback if selection actually changed
+		if args.Entry != args.PreviousEntry {
+			cb(args.Entry, true)
+		}
 	})
 
 	contents.AddChild(list)
@@ -340,11 +348,19 @@ func (u *UI) MakeDropdownWindow(triggerWidget widget.HasWidget, items []any, sel
 	}
 	list.EntrySelectedEvent.AddHandler(func(e any) {
 		args := e.(*widget.ListEntrySelectedEventArgs)
+
+		// Skip initial SetSelectedEntry call (not a user action)
 		if args.PreviousEntry == nil {
 			return
 		}
-		cb(args.Entry, true)
+
+		// Always close the window on any user click
 		window.widget.Close()
+
+		// Only trigger callback if selection actually changed
+		if args.Entry != args.PreviousEntry {
+			cb(args.Entry, true)
+		}
 	})
 
 	// Create contents with just the list (no buttons, no prompt)

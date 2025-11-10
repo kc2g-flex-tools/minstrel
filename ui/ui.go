@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 	"log"
+	"math"
 	"sync"
 
 	"github.com/ebitenui/ebitenui"
@@ -12,6 +13,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 
+	"github.com/kc2g-flex-tools/minstrel/audioshim"
 	"github.com/kc2g-flex-tools/minstrel/events"
 	"github.com/kc2g-flex-tools/minstrel/radioshim"
 )
@@ -54,6 +56,7 @@ type UI struct {
 	eui            *ebitenui.UI
 	Widgets        widgets
 	RadioShim      radioshim.Shim
+	AudioShim      audioshim.Shim
 	deferred       []func()
 	cfg            *Config
 	eventBus       *events.Bus
@@ -70,7 +73,7 @@ func NewUI(cfg *Config, eventBus *events.Bus) *UI {
 	)
 
 	u := &UI{
-		state:    DiscoveryState,
+		state: DiscoveryState,
 		eui: &ebitenui.UI{
 			Container: rootContainer,
 		},
@@ -142,6 +145,19 @@ func (u *UI) Draw(screen *ebiten.Image) {
 }
 
 func (u *UI) Layout(width, height int) (int, int) {
+	newWidth, newHeight := float64(width), float64(height)
+	if newWidth > 2048 {
+		ratio := 2048 / newWidth
+		newWidth = 2048
+		newHeight = newHeight * ratio
+	}
+	if newHeight > 1152 {
+		ratio := 1152 / newHeight
+		newHeight = 1152
+		newWidth = newWidth * ratio
+	}
+	width, height = int(math.Round(newWidth)), int(math.Round(newHeight))
+
 	if u.Width != width || u.Height != height {
 		u.Width = width
 		u.Height = height
@@ -161,8 +177,9 @@ func (u *UI) Layout(width, height int) (int, int) {
 //   - Callbacks should be fast and non-blocking
 //
 // Thread Safety:
-//   The deferred queue is protected by u.mu and executed serially
-//   during runDeferred(), which is called from Update().
+//
+//	The deferred queue is protected by u.mu and executed serially
+//	during runDeferred(), which is called from Update().
 func (u *UI) Defer(cb func()) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
