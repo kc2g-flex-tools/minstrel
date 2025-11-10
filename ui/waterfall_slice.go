@@ -105,16 +105,16 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		for _, ant := range s.Data.RXAntList {
 			antennas = append(antennas, ant)
 		}
-		u.ShowWindow(
-			u.MakeListWindow(
-				"Select RX Antenna", "Roboto-16", "", "Roboto-16",
-				antennas, s.Data.RXAnt, func(a any) string { return a.(string) },
-				func(item any, ok bool) {
-					if ok {
-						u.RadioShim.SetSliceRXAnt(s.Data.Index, item.(string))
-					}
-				},
-			))
+		dropdown := u.MakeDropdownWindow(
+			s.RXAnt,
+			antennas, s.Data.RXAnt, func(a any) string { return a.(string) },
+			func(item any, ok bool) {
+				if ok {
+					u.RadioShim.SetSliceRXAnt(s.Data.Index, item.(string))
+				}
+			},
+		)
+		u.ShowDropdownWindow(dropdown, s.RXAnt)
 	})
 	row1.AddChild(s.RXAnt)
 	s.TXAnt = u.MakeText("Roboto-Condensed-24", colornames.Red)
@@ -123,16 +123,16 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		for _, ant := range s.Data.TXAntList {
 			antennas = append(antennas, ant)
 		}
-		u.ShowWindow(
-			u.MakeListWindow(
-				"Select TX Antenna", "Roboto-16", "", "Roboto-16",
-				antennas, s.Data.TXAnt, func(a any) string { return a.(string) },
-				func(item any, ok bool) {
-					if ok {
-						u.RadioShim.SetSliceTXAnt(s.Data.Index, item.(string))
-					}
-				},
-			))
+		dropdown := u.MakeDropdownWindow(
+			s.TXAnt,
+			antennas, s.Data.TXAnt, func(a any) string { return a.(string) },
+			func(item any, ok bool) {
+				if ok {
+					u.RadioShim.SetSliceTXAnt(s.Data.Index, item.(string))
+				}
+			},
+		)
+		u.ShowDropdownWindow(dropdown, s.TXAnt)
 	})
 
 	// Create the volume slider (hidden by default)
@@ -177,16 +177,16 @@ func (u *UI) MakeSlice(letter string) *Slice {
 		for _, mode := range s.Data.Modes {
 			modes = append(modes, mode)
 		}
-		u.ShowWindow(
-			u.MakeListWindow(
-				"Select mode", "Roboto-16", "", "Roboto-16",
-				modes, s.Data.Mode, func(m any) string { return m.(string) },
-				func(item any, ok bool) {
-					if ok {
-						u.RadioShim.SetSliceMode(s.Data.Index, item.(string))
-					}
-				},
-			))
+		dropdown := u.MakeDropdownWindow(
+			s.Mode,
+			modes, s.Data.Mode, func(m any) string { return m.(string) },
+			func(item any, ok bool) {
+				if ok {
+					u.RadioShim.SetSliceMode(s.Data.Index, item.(string))
+				}
+			},
+		)
+		u.ShowDropdownWindow(dropdown, s.Mode)
 	})
 	row2.AddChild(s.Mode)
 	display.AddChild(row2)

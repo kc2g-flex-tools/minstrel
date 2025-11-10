@@ -322,6 +322,124 @@ func (u *UI) MakeListWindow(title, titleFont, prompt, mainFont string, items []a
 	return window
 }
 
+// MakeDropdownWindow creates a dropdown-style window without a title bar
+func (u *UI) MakeDropdownWindow(triggerWidget widget.HasWidget, items []any, selected any, labeler func(any) string, cb func(any, bool)) *Window {
+	var window *Window
+
+	// Create list with fixed layout to prevent sizing issues
+	list := u.MakeList("Roboto-16", labeler)
+	list.GetWidget().LayoutData = widget.AnchorLayoutData{
+		StretchHorizontal: true,
+		StretchVertical:   true,
+	}
+	for _, item := range items {
+		list.AddEntry(item)
+	}
+	if selected != nil {
+		list.SetSelectedEntry(selected)
+	}
+	list.EntrySelectedEvent.AddHandler(func(e any) {
+		args := e.(*widget.ListEntrySelectedEventArgs)
+		if args.PreviousEntry == nil {
+			return
+		}
+		cb(args.Entry, true)
+		window.widget.Close()
+	})
+
+	// Create contents with just the list (no buttons, no prompt)
+	contents := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(NewNineSliceBorder(color.NRGBA{0x44, 0x44, 0x44, 0xc0}, color.NRGBA{0xee, 0xee, 0xee, 0xc0}, 2)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout(
+			widget.AnchorLayoutOpts.Padding(widget.NewInsetsSimple(8+2)),
+		)),
+	)
+	contents.AddChild(list)
+
+	// Create window without title bar
+	win := widget.NewWindow(
+		widget.WindowOpts.Contents(contents),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.CLICK_OUT),
+	)
+
+	window = &Window{widget: win}
+	return window
+}
+
+// ShowDropdownWindow positions and shows a dropdown window relative to a trigger widget
+func (u *UI) ShowDropdownWindow(window *Window, triggerWidget widget.HasWidget) {
+	win := window.widget
+
+	// Get trigger widget's rectangle
+	triggerRect := triggerWidget.GetWidget().Rect
+
+	// Get window size
+	winX, winY := ebiten.WindowSize()
+
+	// Calculate max height (3/4 of screen)
+	maxHeight := (winY * 3) / 4
+
+	// Validate and get preferred content size
+	win.Contents.RequestRelayout()
+	win.Contents.Validate()
+	contentWidth, contentHeight := win.Contents.PreferredSize()
+
+	// Limit height to maxHeight
+	actualHeight := contentHeight
+	if actualHeight > maxHeight {
+		actualHeight = maxHeight
+	}
+
+	// Start with trigger widget width
+	dropdownWidth := triggerRect.Dx()
+
+	// Extend right if content needs more width
+	if contentWidth > dropdownWidth {
+		dropdownWidth = contentWidth
+	}
+
+	// Ensure minimum width for readability
+	if dropdownWidth < 200 {
+		dropdownWidth = 200
+	}
+
+	// Calculate X position (align with left edge of trigger, or shift left if would go off screen)
+	x := triggerRect.Min.X
+	if x+dropdownWidth > winX {
+		x = winX - dropdownWidth
+		if x < 0 {
+			x = 0
+			dropdownWidth = winX
+		}
+	}
+
+	// Calculate Y position (try below first, then above if no space)
+	var y int
+	if triggerRect.Max.Y+actualHeight <= winY {
+		// Position below
+		y = triggerRect.Max.Y
+	} else if triggerRect.Min.Y-actualHeight >= 0 {
+		// Position above
+		y = triggerRect.Min.Y - actualHeight
+	} else {
+		// Not enough space either way, position below and let height be limited
+		y = triggerRect.Max.Y
+		// Recalculate height to fit remaining space
+		remainingSpace := winY - y
+		if remainingSpace < actualHeight {
+			actualHeight = remainingSpace
+		}
+	}
+
+	r := image.Rect(x, y, x+dropdownWidth, y+actualHeight)
+	win.SetLocation(r)
+	u.eui.AddWindow(win)
+	u.Defer(func() {
+		u.eui.ChangeFocus(widget.FOCUS_NEXT)
+	})
+}
+
 func (u *UI) ShowWindow(window *Window) {
 	win := window.widget
 	win.Contents.Validate()
