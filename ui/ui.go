@@ -249,8 +249,8 @@ func (u *UI) HandleEvents(eventChan chan events.Event) {
 		case events.WaterfallDataRangeChanged:
 			u.Defer(func() {
 				wf := u.Widgets.WaterfallPage.Waterfall
-				wf.DataLow = e.Low
-				wf.DataHigh = e.High
+				wf.Data.DataLow = e.Low
+				wf.Data.DataHigh = e.High
 			})
 
 		case events.WaterfallRowReceived:

@@ -19,6 +19,10 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// =============================================================================
+// Types and Constants
+// =============================================================================
+
 type WaterfallWidgets struct {
 	Container        *widget.Container
 	SliceArea        *widget.Container
@@ -31,44 +35,119 @@ type WaterfallWidgets struct {
 
 const sliceFlagPadding = 4.0
 
-type Waterfall struct {
-	Widget               *widget.Graphic
-	RulerWidget          *widget.Graphic
-	Img                  *ebiten.Image
-	RulerImg             *ebiten.Image
-	BackBuffer           *ebiten.Image
-	RowBuffer            []byte
-	Width                int
-	Height               int
-	RulerWidth           int
-	RulerHeight          int
-	Bins                 int
-	ScrollPos            int
-	DispLow              float64
-	DispHigh             float64
-	DispLowLatch         float64
-	DispHighLatch        float64
-	DataLow              float64
-	DataHigh             float64
-	PrevDataLow          float64
-	PrevDataHigh         float64
-	SliceBwImg           *ebimage.NineSlice
-	ActiveSliceMarkImg   *ebimage.NineSlice
-	InactiveSliceMarkImg *ebimage.NineSlice
-	ScrollAccumulator    float64
-	Drag                 DragData
-	ClickTime            time.Time
-	SliceFlagBgRX        *ebiten.Image
-	SliceFlagBgTX        *ebiten.Image
-	SliceFlagFace        *text.Face
-}
-
 type DragData struct {
 	Active bool
 	What   string
 	Start  float64
 	Aux    float64
 }
+
+// WaterfallRuler handles the frequency ruler display
+type WaterfallRuler struct {
+	Widget *widget.Graphic
+	Img    *ebiten.Image
+	Width  int
+	Height int
+}
+
+// WaterfallSliceGraphics stores pre-rendered graphics for slice markers
+type WaterfallSliceGraphics struct {
+	SliceBwImg           *ebimage.NineSlice
+	ActiveSliceMarkImg   *ebimage.NineSlice
+	InactiveSliceMarkImg *ebimage.NineSlice
+	SliceFlagBgRX        *ebiten.Image
+	SliceFlagBgTX        *ebiten.Image
+	SliceFlagFace        *text.Face
+}
+
+// WaterfallInteraction tracks user interaction state
+type WaterfallInteraction struct {
+	Drag      DragData
+	ClickTime time.Time
+}
+
+// WaterfallData tracks incoming data frequency range
+type WaterfallData struct {
+	DataLow           float64
+	DataHigh          float64
+	PrevDataLow       float64
+	PrevDataHigh      float64
+	ScrollAccumulator float64
+}
+
+// WaterfallDisplay handles the main waterfall display rendering
+type WaterfallDisplay struct {
+	Widget     *widget.Graphic
+	Img        *ebiten.Image
+	BackBuffer *ebiten.Image
+	RowBuffer  []byte
+	Width      int
+	Height     int
+	Bins       int
+	ScrollPos  int
+
+	// Display frequency range
+	DispLow       float64
+	DispHigh      float64
+	DispLowLatch  float64
+	DispHighLatch float64
+}
+
+func (d *WaterfallDisplay) updateSize() {
+	rect := d.Widget.GetWidget().Rect
+	width, height := rect.Dx(), rect.Dy()
+	if d.Width != width || d.Height != height {
+		log.Printf("wf rect %d x %d\n", width, height)
+		if d.Height != height {
+			oldBB := d.BackBuffer
+			// Make a new backbuffer of the correct height.
+			d.BackBuffer = ebiten.NewImage(d.Bins, height)
+			// Fill any increased height with black
+			d.BackBuffer.Fill(colornames.Black)
+			if oldBB != nil {
+				// Copy the old backbuffer into the new one, moving scrollpos to 0
+				// so that if the height is decreasing we keep the newest data.
+				d.BackBuffer.DrawImage(
+					oldBB.SubImage(image.Rect(0, d.ScrollPos, d.Bins, d.Height)).(*ebiten.Image),
+					nil,
+				)
+				geom := ebiten.GeoM{}
+				geom.Translate(0, float64(d.Height-d.ScrollPos))
+				d.BackBuffer.DrawImage(
+					oldBB.SubImage(image.Rect(0, 0, d.Bins, d.ScrollPos)).(*ebiten.Image),
+					&ebiten.DrawImageOptions{GeoM: geom},
+				)
+				oldBB.Deallocate()
+			}
+			d.ScrollPos = 0
+		}
+		// Update the size and create the new front buffer
+		d.Width, d.Height = width, height
+		d.Img = ebiten.NewImage(width, height)
+		d.Widget.Image = d.Img
+	}
+}
+
+type Waterfall struct{
+	// Main waterfall display
+	*WaterfallDisplay
+
+	// Frequency ruler
+	Ruler *WaterfallRuler
+
+	// Slice graphics (pre-rendered)
+	Graphics *WaterfallSliceGraphics
+
+	// User interaction state
+	Interaction *WaterfallInteraction
+
+	// Data frequency range (incoming VITA packets)
+	Data *WaterfallData
+}
+
+// =============================================================================
+// Page Construction and Initialization
+// =============================================================================
 
 func (u *UI) MakeWaterfallPage() {
 	wf := &WaterfallWidgets{}
@@ -122,14 +201,16 @@ func (u *UI) MakeWaterfallPage() {
 			widget.WidgetOpts.MinSize(0, 18),
 		),
 	)
-	wf.RulerArea.AddChild(wf.Waterfall.RulerWidget)
+	wf.RulerArea.AddChild(wf.Waterfall.Ruler.Widget)
 
 	wf.Container.AddChild(wf.RulerArea)
 	wf.Container.AddChild(wf.Waterfall.Widget)
-	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
-	wf.Waterfall.ActiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
-	wf.Waterfall.InactiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Red)
-	wf.Waterfall.initSliceFlagBg(u)
+	wf.Waterfall.Graphics = &WaterfallSliceGraphics{
+		SliceBwImg:           ebimage.NewNineSliceColor(colornames.Lightskyblue),
+		ActiveSliceMarkImg:   ebimage.NewNineSliceColor(colornames.Yellow),
+		InactiveSliceMarkImg: ebimage.NewNineSliceColor(colornames.Red),
+	}
+	wf.Waterfall.Graphics.initSliceFlagBg(u.Font("Roboto-Semibold-16"))
 	u.Widgets.WaterfallPage = wf
 }
 
@@ -166,41 +247,12 @@ func (wf *WaterfallWidgets) Update(u *UI) {
 	wf.Container.RequestRelayout()
 }
 
-type wfDragDropper struct {
-	container *widget.Container
-	u         *UI
-	wfw       *WaterfallWidgets
-}
-
-func (d *wfDragDropper) Create(parent widget.HasWidget) (*widget.Container, interface{}) {
-	d.container = widget.NewContainer()
-	return d.container, nil
-}
-
-func (d *wfDragDropper) Update(canDrop bool, targetWidget widget.HasWidget, dragData interface{}) {
-	wf := d.wfw.Waterfall
-	xPos := float64(d.container.GetWidget().Rect.Min.X)
-	if wf.Drag.Active {
-		if wf.Drag.What == "waterfall" {
-			delta := wf.Drag.Start - xPos
-			freq := wf.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-			go d.u.RadioShim.CenterWaterfallAt(freq)
-		} else {
-			newTuneX := xPos + wf.Drag.Aux
-			freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
-			go d.u.RadioShim.TuneSlice(d.wfw.Slices[wf.Drag.What].Data, freq, true)
-		}
-	} else {
-		log.Println("how are we in wfDragDropper.Update with no active drag?")
-	}
-}
-
-func (d *wfDragDropper) EndDrag(dropped bool, sourceWidget widget.HasWidget, dragData interface{}) {
-	d.wfw.Waterfall.Drag = DragData{}
-}
-
 func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
-	wf := &Waterfall{}
+	wf := &Waterfall{
+		WaterfallDisplay: &WaterfallDisplay{},
+	}
+	wf.Interaction = &WaterfallInteraction{}
+	wf.Data = &WaterfallData{}
 	wf.Widget = widget.NewGraphic(
 		widget.GraphicOpts.Image(ebiten.NewImage(1, 1)),
 		widget.GraphicOpts.WidgetOpts(
@@ -253,16 +305,16 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 				}
 
 				now := time.Now()
-				if time.Since(wf.ClickTime) < 400*time.Millisecond {
+				if time.Since(wf.Interaction.ClickTime) < 400*time.Millisecond {
 					freq := wf.DispLowLatch + (float64(args.OffsetX)/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
 					if slice := wfw.GetActiveSlice(); slice != nil {
 						go u.RadioShim.TuneSlice(slice.Data, freq, true)
 					}
 				}
-				wf.ClickTime = now
+				wf.Interaction.ClickTime = now
 				for _, item := range orderedSlices {
 					if float64(args.OffsetX) >= item.slice.FootprintLeft && float64(args.OffsetX) <= item.slice.FootprintRight {
-						wf.Drag = DragData{
+						wf.Interaction.Drag = DragData{
 							Active: true,
 							What:   item.key,
 							Start:  float64(args.OffsetX),
@@ -274,8 +326,8 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 						break
 					}
 				}
-				if !wf.Drag.Active {
-					wf.Drag = DragData{
+				if !wf.Interaction.Drag.Active {
+					wf.Interaction.Drag = DragData{
 						Active: true,
 						What:   "waterfall",
 						Start:  float64(args.OffsetX),
@@ -295,54 +347,61 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 	)
 
 	// Create ruler widget that stretches to fill the ruler area
-	wf.RulerWidget = widget.NewGraphic(
-		widget.GraphicOpts.Image(ebiten.NewImage(1, 1)),
-		widget.GraphicOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				StretchHorizontal: true,
-				StretchVertical:   true,
-			}),
+	wf.Ruler = &WaterfallRuler{
+		Widget: widget.NewGraphic(
+			widget.GraphicOpts.Image(ebiten.NewImage(1, 1)),
+			widget.GraphicOpts.WidgetOpts(
+				widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+					StretchHorizontal: true,
+					StretchVertical:   true,
+				}),
+			),
 		),
-	)
+	}
 
 	return wf
 }
 
-func (wf *Waterfall) initSliceFlagBg(u *UI) {
-	// Store font face for reuse
-	wf.SliceFlagFace = u.Font("Roboto-Semibold-16")
+// =============================================================================
+// Drag and Drop Handling
+// =============================================================================
 
-	// Calculate dimensions based on monospace font
-	textWidth, textHeight := text.Measure("M", *wf.SliceFlagFace, 0)
-
-	flagWidth := textWidth + sliceFlagPadding*2
-	flagHeight := textHeight + sliceFlagPadding*2
-
-	// Create both RX and TX flag backgrounds
-	wf.SliceFlagBgRX = createSliceFlagImage(flagWidth, flagHeight, sliceRXBgColor)
-	wf.SliceFlagBgTX = createSliceFlagImage(flagWidth, flagHeight, sliceTXBgColor)
+type wfDragDropper struct {
+	container *widget.Container
+	u         *UI
+	wfw       *WaterfallWidgets
 }
 
-func createSliceFlagImage(flagWidth, flagHeight float64, bgColor color.Color) *ebiten.Image {
-	radius := float32(2.0)
-	img := ebiten.NewImage(int(flagWidth)+1, int(flagHeight)+1)
-
-	flagX := float32(0)
-	flagY := float32(0)
-
-	// Four corners
-	vector.DrawFilledCircle(img, flagX+radius, flagY+radius, radius, bgColor, true)
-	vector.DrawFilledCircle(img, flagX+float32(flagWidth)-radius, flagY+radius, radius, bgColor, true)
-	vector.DrawFilledCircle(img, flagX+radius, flagY+float32(flagHeight)-radius, radius, bgColor, true)
-	vector.DrawFilledCircle(img, flagX+float32(flagWidth)-radius, flagY+float32(flagHeight)-radius, radius, bgColor, true)
-
-	// Fill the middle rectangles
-	vector.DrawFilledRect(img, flagX+radius, flagY, float32(flagWidth)-2*radius, float32(flagHeight), bgColor, true)
-	vector.DrawFilledRect(img, flagX, flagY+radius, radius, float32(flagHeight)-2*radius, bgColor, true)
-	vector.DrawFilledRect(img, flagX+float32(flagWidth)-radius, flagY+radius, radius, float32(flagHeight)-2*radius, bgColor, true)
-
-	return img
+func (d *wfDragDropper) Create(parent widget.HasWidget) (*widget.Container, interface{}) {
+	d.container = widget.NewContainer()
+	return d.container, nil
 }
+
+func (d *wfDragDropper) Update(canDrop bool, targetWidget widget.HasWidget, dragData interface{}) {
+	wf := d.wfw.Waterfall
+	xPos := float64(d.container.GetWidget().Rect.Min.X)
+	if wf.Interaction.Drag.Active {
+		if wf.Interaction.Drag.What == "waterfall" {
+			delta := wf.Interaction.Drag.Start - xPos
+			freq := wf.Interaction.Drag.Aux + (delta/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+			go d.u.RadioShim.CenterWaterfallAt(freq)
+		} else {
+			newTuneX := xPos + wf.Interaction.Drag.Aux
+			freq := wf.DispLowLatch + (newTuneX/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
+			go d.u.RadioShim.TuneSlice(d.wfw.Slices[wf.Interaction.Drag.What].Data, freq, true)
+		}
+	} else {
+		log.Println("how are we in wfDragDropper.Update with no active drag?")
+	}
+}
+
+func (d *wfDragDropper) EndDrag(dropped bool, sourceWidget widget.HasWidget, dragData interface{}) {
+	d.wfw.Waterfall.Interaction.Drag = DragData{}
+}
+
+// =============================================================================
+// Waterfall Data Management
+// =============================================================================
 
 func (wf *Waterfall) SetBins(w uint16) {
 	if wf.Bins == int(w) {
@@ -384,52 +443,17 @@ func (wf *Waterfall) AddRow(bins []uint16, blackLevel uint32) {
 	wf.BackBuffer.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.ScrollPos+1)).(*ebiten.Image).WritePixels(wf.RowBuffer)
 }
 
-func (wf *Waterfall) updateSize() {
-	rect := wf.Widget.GetWidget().Rect
-	width, height := rect.Dx(), rect.Dy()
-	if wf.Width != width || wf.Height != height {
-		log.Printf("wf rect %d x %d\n", width, height)
-		if wf.Height != height {
-			oldBB := wf.BackBuffer
-			// Make a new backbuffer of the correct height.
-			wf.BackBuffer = ebiten.NewImage(wf.Bins, height)
-			// Fill any increased height with black
-			wf.BackBuffer.Fill(colornames.Black)
-			if oldBB != nil {
-				// Copy the old backbuffer into the new one, moving scrollpos to 0
-				// so that if the height is decreasing we keep the newest data.
-				wf.BackBuffer.DrawImage(
-					oldBB.SubImage(image.Rect(0, wf.ScrollPos, wf.Bins, wf.Height)).(*ebiten.Image),
-					nil,
-				)
-				geom := ebiten.GeoM{}
-				geom.Translate(0, float64(wf.Height-wf.ScrollPos))
-				wf.BackBuffer.DrawImage(
-					oldBB.SubImage(image.Rect(0, 0, wf.Bins, wf.ScrollPos)).(*ebiten.Image),
-					&ebiten.DrawImageOptions{GeoM: geom},
-				)
-				oldBB.Deallocate()
-			}
-			wf.ScrollPos = 0
-		}
-		// Update the size and create the new front buffer
-		wf.Width, wf.Height = width, height
-		wf.Img = ebiten.NewImage(width, height)
-		wf.Widget.Image = wf.Img
-	}
-}
-
 func (wf *Waterfall) handleFreqScroll() {
-	if wf.DataLow != wf.PrevDataLow || wf.DataHigh != wf.PrevDataHigh {
-		newSpan := wf.DataHigh - wf.DataLow
-		oldSpan := wf.PrevDataHigh - wf.PrevDataLow
+	if wf.Data.DataLow != wf.Data.PrevDataLow || wf.Data.DataHigh != wf.Data.PrevDataHigh {
+		newSpan := wf.Data.DataHigh - wf.Data.DataLow
+		oldSpan := wf.Data.PrevDataHigh - wf.Data.PrevDataLow
 		if math.Abs(newSpan-oldSpan)/(newSpan+oldSpan) > 0.01 {
 			wf.BackBuffer.Fill(colornames.Black)
 		} else {
-			freqShift := wf.PrevDataLow - wf.DataLow
-			wf.ScrollAccumulator += freqShift * float64(wf.Bins) / (wf.DataHigh - wf.DataLow)
-			binShift := math.Round(wf.ScrollAccumulator)
-			wf.ScrollAccumulator -= binShift
+			freqShift := wf.Data.PrevDataLow - wf.Data.DataLow
+			wf.Data.ScrollAccumulator += freqShift * float64(wf.Bins) / (wf.Data.DataHigh - wf.Data.DataLow)
+			binShift := math.Round(wf.Data.ScrollAccumulator)
+			wf.Data.ScrollAccumulator -= binShift
 			if binShift != 0 {
 				oldBb := wf.BackBuffer
 				geom := ebiten.GeoM{}
@@ -442,14 +466,20 @@ func (wf *Waterfall) handleFreqScroll() {
 				oldBb.Deallocate()
 			}
 		}
-		wf.PrevDataLow, wf.PrevDataHigh = wf.DataLow, wf.DataHigh
+		wf.Data.PrevDataLow, wf.Data.PrevDataHigh = wf.Data.DataLow, wf.Data.DataHigh
 	}
 }
 
+// =============================================================================
+// Rendering
+// =============================================================================
+
+// --- Waterfall rendering ---
+
 func (wf *Waterfall) drawWaterfall() {
 	geom := ebiten.GeoM{}
-	geom.Scale((wf.DataHigh-wf.DataLow)/float64(wf.Bins), 1)
-	geom.Translate(wf.DataLow-wf.DispLowLatch, 0)
+	geom.Scale((wf.Data.DataHigh-wf.Data.DataLow)/float64(wf.Bins), 1)
+	geom.Translate(wf.Data.DataLow-wf.DispLowLatch, 0)
 	geom.Scale(float64(wf.Width-1)/(wf.DispHighLatch-wf.DispLowLatch), 1)
 
 	// log.Printf("data: (%f - %f) in %d, disp: (%f - %f) in %d, scale: %s\n", wf.DataLow, wf.DataHigh, wf.Bins, wf.DispLowLatch, wf.DispHighLatch, wf.Width, geom.String())
@@ -464,6 +494,18 @@ func (wf *Waterfall) drawWaterfall() {
 			wf.BackBuffer.SubImage(image.Rect(0, 0, wf.Bins, wf.ScrollPos)).(*ebiten.Image),
 			&ebiten.DrawImageOptions{GeoM: geom, Filter: ebiten.FilterLinear},
 		)
+	}
+}
+
+// --- Frequency ruler rendering ---
+
+func (r *WaterfallRuler) updateSize() {
+	rect := r.Widget.GetWidget().Rect
+	width, height := rect.Dx(), rect.Dy()
+	if r.Width != width || r.Height != height {
+		r.Width, r.Height = width, height
+		r.Img = ebiten.NewImage(width, height)
+		r.Widget.Image = r.Img
 	}
 }
 
@@ -501,23 +543,13 @@ func (wf *Waterfall) calculateFrequencyRulerStep(labelWidth float64) float64 {
 	return minFreqStep
 }
 
-func (wf *Waterfall) updateRulerSize() {
-	rect := wf.RulerWidget.GetWidget().Rect
-	width, height := rect.Dx(), rect.Dy()
-	if wf.RulerWidth != width || wf.RulerHeight != height {
-		wf.RulerWidth, wf.RulerHeight = width, height
-		wf.RulerImg = ebiten.NewImage(width, height)
-		wf.RulerWidget.Image = wf.RulerImg
-	}
-}
-
 func (wf *Waterfall) drawFrequencyRuler(u *UI) {
-	if wf.RulerImg == nil {
+	if wf.Ruler.Img == nil {
 		return
 	}
 
 	// Clear ruler background to black
-	wf.RulerImg.Fill(colornames.Black)
+	wf.Ruler.Img.Fill(colornames.Black)
 
 	// Use a small readable font
 	rulerFace := u.Font("Roboto-Semibold-12")
@@ -559,7 +591,7 @@ func (wf *Waterfall) drawFrequencyRuler(u *UI) {
 		labelX := freqX - beforeWidth - dotWidth/2
 
 		// Skip if label would go off screen
-		if labelX < 0 || labelX+labelWidth > float64(wf.RulerWidth) {
+		if labelX < 0 || labelX+labelWidth > float64(wf.Ruler.Width) {
 			continue
 		}
 
@@ -567,8 +599,46 @@ func (wf *Waterfall) drawFrequencyRuler(u *UI) {
 		textOpts := &text.DrawOptions{}
 		textOpts.GeoM.Translate(labelX, rulerY)
 		textOpts.ColorScale.ScaleWithColor(labelColor)
-		text.Draw(wf.RulerImg, label, *rulerFace, textOpts)
+		text.Draw(wf.Ruler.Img, label, *rulerFace, textOpts)
 	}
+}
+
+// --- Slice marker rendering ---
+
+func (g *WaterfallSliceGraphics) initSliceFlagBg(fontFace *text.Face) {
+	// Store font face for reuse
+	g.SliceFlagFace = fontFace
+
+	// Calculate dimensions based on monospace font
+	textWidth, textHeight := text.Measure("M", *g.SliceFlagFace, 0)
+
+	flagWidth := textWidth + sliceFlagPadding*2
+	flagHeight := textHeight + sliceFlagPadding*2
+
+	// Create both RX and TX flag backgrounds
+	g.SliceFlagBgRX = createSliceFlagImage(flagWidth, flagHeight, sliceRXBgColor)
+	g.SliceFlagBgTX = createSliceFlagImage(flagWidth, flagHeight, sliceTXBgColor)
+}
+
+func createSliceFlagImage(flagWidth, flagHeight float64, bgColor color.Color) *ebiten.Image {
+	radius := float32(2.0)
+	img := ebiten.NewImage(int(flagWidth)+1, int(flagHeight)+1)
+
+	flagX := float32(0)
+	flagY := float32(0)
+
+	// Four corners
+	vector.DrawFilledCircle(img, flagX+radius, flagY+radius, radius, bgColor, true)
+	vector.DrawFilledCircle(img, flagX+float32(flagWidth)-radius, flagY+radius, radius, bgColor, true)
+	vector.DrawFilledCircle(img, flagX+radius, flagY+float32(flagHeight)-radius, radius, bgColor, true)
+	vector.DrawFilledCircle(img, flagX+float32(flagWidth)-radius, flagY+float32(flagHeight)-radius, radius, bgColor, true)
+
+	// Fill the middle rectangles
+	vector.DrawFilledRect(img, flagX+radius, flagY, float32(flagWidth)-2*radius, float32(flagHeight), bgColor, true)
+	vector.DrawFilledRect(img, flagX, flagY+radius, radius, float32(flagHeight)-2*radius, bgColor, true)
+	vector.DrawFilledRect(img, flagX+float32(flagWidth)-radius, flagY+radius, radius, float32(flagHeight)-2*radius, bgColor, true)
+
+	return img
 }
 
 func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, u *UI, slice *Slice) {
@@ -577,10 +647,10 @@ func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, 
 	flagY := 2.0
 
 	// Select background based on TX status
-	flagBg := wf.SliceFlagBgRX
+	flagBg := wf.Graphics.SliceFlagBgRX
 	letterColor := sliceRXTextColor
 	if isTX {
-		flagBg = wf.SliceFlagBgTX
+		flagBg = wf.Graphics.SliceFlagBgTX
 		letterColor = sliceTXTextColor
 	}
 
@@ -634,14 +704,14 @@ func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, 
 	wf.Widget.Image.DrawImage(flagBg, opts)
 
 	// Measure the actual letter width and calculate centering offset
-	letterWidth, _ := text.Measure(letter, *wf.SliceFlagFace, 0)
+	letterWidth, _ := text.Measure(letter, *wf.Graphics.SliceFlagFace, 0)
 	centerOffsetX := (bgWidth - letterWidth) / 2
 
 	// Draw the letter text centered
 	textOpts := &text.DrawOptions{}
 	textOpts.GeoM.Translate(flagX+centerOffsetX, flagY+sliceFlagPadding)
 	textOpts.ColorScale.ScaleWithColor(letterColor)
-	text.Draw(wf.Widget.Image, letter, *wf.SliceFlagFace, textOpts)
+	text.Draw(wf.Widget.Image, letter, *wf.Graphics.SliceFlagFace, textOpts)
 }
 
 // drawArrowButton draws a clickable arrow button for tuning
@@ -689,15 +759,15 @@ func (wf *Waterfall) drawSliceMarker(slice *Slice, letter string, u *UI) {
 	slice.FootprintRight = max(markerPos, shadeRight)
 	slice.TuneX = markerPos
 
-	wf.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
+	wf.Graphics.SliceBwImg.Draw(wf.Widget.Image, 1, wf.Height, func(opts *ebiten.DrawImageOptions) {
 		opts.GeoM.Scale(shadeRight-shadeLeft, 1)
 		opts.GeoM.Translate(shadeLeft, 0)
 		opts.ColorScale.ScaleAlpha(0.3)
 	})
 
-	mark := wf.InactiveSliceMarkImg
+	mark := wf.Graphics.InactiveSliceMarkImg
 	if data.Active {
-		mark = wf.ActiveSliceMarkImg
+		mark = wf.Graphics.ActiveSliceMarkImg
 	}
 	mark.Draw(wf.Widget.Image, 2, wf.Height, func(opts *ebiten.DrawImageOptions) {
 		opts.GeoM.Translate(markerPos, 0)
@@ -708,13 +778,17 @@ func (wf *Waterfall) drawSliceMarker(slice *Slice, letter string, u *UI) {
 	wf.drawSliceFlag(markerPos, letter, data.TX, u, slice)
 }
 
+// =============================================================================
+// Main Update Loop
+// =============================================================================
+
 func (wf *Waterfall) Update(u *UI) {
 	if wf.Bins == 0 {
 		return
 	}
 
 	wf.updateSize()
-	wf.updateRulerSize()
+	wf.Ruler.updateSize()
 	wf.handleFreqScroll()
 	wf.drawWaterfall()
 
