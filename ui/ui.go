@@ -34,31 +34,33 @@ type widgets struct {
 }
 
 type Config struct {
-	Touch bool `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
-	FPS   int  `dialsdesc:"Framerate" dialsflag:"fps"`
-	Kiosk bool `dialsdesc:"Kiosk mode (fullscreen, I own the machine)" dialsflag:"kiosk"`
+	Touch bool    `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
+	FPS   int     `dialsdesc:"Framerate" dialsflag:"fps"`
+	Kiosk bool    `dialsdesc:"Kiosk mode (fullscreen, I own the machine)" dialsflag:"kiosk"`
+	Scale float64 `dialsdesc:"UI Scale factor" dialsflag:"scale"`
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		FPS: 30,
+		FPS:   30,
+		Scale: 1.0,
 	}
 }
 
 type UI struct {
-	mu             sync.RWMutex
-	update         bool
-	exit           bool
-	state          State
-	font           map[string]text.Face
-	Width          int
-	Height         int
-	radios         []map[string]string
-	eui            *ebitenui.UI
-	Widgets        widgets
-	RadioShim      radioshim.Shim
-	AudioShim      audioshim.Shim
-	MIDIShim       interface {
+	mu        sync.RWMutex
+	update    bool
+	exit      bool
+	state     State
+	font      map[string]text.Face
+	Width     int
+	Height    int
+	radios    []map[string]string
+	eui       *ebitenui.UI
+	Widgets   widgets
+	RadioShim radioshim.Shim
+	AudioShim audioshim.Shim
+	MIDIShim  interface {
 		Connect(ctx context.Context, portName string, rs radioshim.Shim) error
 		Disconnect()
 		Status() (connected bool, port string, errorMsg string)
@@ -152,16 +154,9 @@ func (u *UI) Draw(screen *ebiten.Image) {
 
 func (u *UI) Layout(width, height int) (int, int) {
 	newWidth, newHeight := float64(width), float64(height)
-	if newWidth > 2048 {
-		ratio := 2048 / newWidth
-		newWidth = 2048
-		newHeight = newHeight * ratio
-	}
-	if newHeight > 1152 {
-		ratio := 1152 / newHeight
-		newHeight = 1152
-		newWidth = newWidth * ratio
-	}
+	scale := max(u.cfg.Scale, newWidth/2048, newHeight/1152)
+	newWidth /= scale
+	newHeight /= scale
 	width, height = int(math.Round(newWidth)), int(math.Round(newHeight))
 
 	if u.Width != width || u.Height != height {
