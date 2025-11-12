@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -21,6 +22,7 @@ import (
 type WaterfallWidgets struct {
 	Container        *widget.Container
 	SliceArea        *widget.Container
+	RulerArea        *widget.Container
 	Slices           map[string]*Slice
 	Waterfall        *Waterfall
 	Controls         *WaterfallControls
@@ -31,11 +33,15 @@ const sliceFlagPadding = 4.0
 
 type Waterfall struct {
 	Widget               *widget.Graphic
+	RulerWidget          *widget.Graphic
 	Img                  *ebiten.Image
+	RulerImg             *ebiten.Image
 	BackBuffer           *ebiten.Image
 	RowBuffer            []byte
 	Width                int
 	Height               int
+	RulerWidth           int
+	RulerHeight          int
 	Bins                 int
 	ScrollPos            int
 	DispLow              float64
@@ -69,8 +75,8 @@ func (u *UI) MakeWaterfallPage() {
 	wf.Container = widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
-			widget.GridLayoutOpts.Spacing(0, 4),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, true}),
+			widget.GridLayoutOpts.Spacing(0, 0),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(
@@ -104,6 +110,21 @@ func (u *UI) MakeWaterfallPage() {
 
 	wf.Container.AddChild(wf.SliceArea)
 	wf.Waterfall = u.MakeWaterfall(wf)
+
+	// Create ruler area container with fixed height
+	wf.RulerArea = widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.BackgroundImage(ebimage.NewNineSliceColor(colornames.Black)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.RowLayoutData{
+				MaxHeight: 18,
+			}),
+			widget.WidgetOpts.MinSize(0, 18),
+		),
+	)
+	wf.RulerArea.AddChild(wf.Waterfall.RulerWidget)
+
+	wf.Container.AddChild(wf.RulerArea)
 	wf.Container.AddChild(wf.Waterfall.Widget)
 	wf.Waterfall.SliceBwImg = ebimage.NewNineSliceColor(colornames.Lightskyblue)
 	wf.Waterfall.ActiveSliceMarkImg = ebimage.NewNineSliceColor(colornames.Yellow)
@@ -272,6 +293,18 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 			}),
 		),
 	)
+
+	// Create ruler widget that stretches to fill the ruler area
+	wf.RulerWidget = widget.NewGraphic(
+		widget.GraphicOpts.Image(ebiten.NewImage(1, 1)),
+		widget.GraphicOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchHorizontal: true,
+				StretchVertical:   true,
+			}),
+		),
+	)
+
 	return wf
 }
 
@@ -434,6 +467,110 @@ func (wf *Waterfall) drawWaterfall() {
 	}
 }
 
+// calculateFrequencyRulerStep determines the spacing between frequency labels
+// Returns step in MHz that satisfies constraints:
+// - At least 5 kHz apart (0.005 MHz)
+// - At least 1/10 of the waterfall span
+// - Nice round numbers (multiples of 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, etc.)
+func (wf *Waterfall) calculateFrequencyRulerStep(labelWidth float64) float64 {
+	span := wf.DispHighLatch - wf.DispLowLatch
+
+	// Minimum spacing constraints
+	minFreqStep := math.Max(0.005, span/10.0) // At least 5 kHz or 1/10 span
+
+	// Also need to ensure labels don't overlap (labelWidth in pixels)
+	minPixelStep := labelWidth * 1.2 // Add 20% padding
+	minFreqFromPixels := (minPixelStep / float64(wf.Width)) * span
+
+	minFreqStep = math.Max(minFreqStep, minFreqFromPixels)
+
+	// Find a nice round step size
+	// Try steps: 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, etc.
+	niceSteps := []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0}
+
+	// Scale up the nice steps by powers of 10 until we find one that works
+	for scale := 1.0; scale < 1000.0; scale *= 10.0 {
+		for _, base := range niceSteps {
+			step := base * scale
+			if step >= minFreqStep {
+				return step
+			}
+		}
+	}
+
+	return minFreqStep
+}
+
+func (wf *Waterfall) updateRulerSize() {
+	rect := wf.RulerWidget.GetWidget().Rect
+	width, height := rect.Dx(), rect.Dy()
+	if wf.RulerWidth != width || wf.RulerHeight != height {
+		wf.RulerWidth, wf.RulerHeight = width, height
+		wf.RulerImg = ebiten.NewImage(width, height)
+		wf.RulerWidget.Image = wf.RulerImg
+	}
+}
+
+func (wf *Waterfall) drawFrequencyRuler(u *UI) {
+	if wf.RulerImg == nil {
+		return
+	}
+
+	// Clear ruler background to black
+	wf.RulerImg.Fill(colornames.Black)
+
+	// Use a small readable font
+	rulerFace := u.Font("Roboto-Semibold-12")
+
+	// Measure a sample label to estimate width
+	sampleWidth, _ := text.Measure("00.000", *rulerFace, 0)
+
+	step := wf.calculateFrequencyRulerStep(sampleWidth)
+
+	// Find the first label position (round down to nearest step)
+	firstFreq := math.Floor(wf.DispLowLatch/step) * step
+
+	// Draw labels
+	rulerY := 2.0
+	labelColor := colornames.Lightgray
+
+	for freq := firstFreq; freq <= wf.DispHighLatch; freq += step {
+		if freq < wf.DispLowLatch {
+			continue
+		}
+
+		// Format frequency with 3 decimal places
+		label := fmt.Sprintf("%.3f", freq)
+
+		// Calculate pixel position for this frequency (using waterfall width)
+		freqX := float64(wf.Width) * (freq - wf.DispLowLatch) / (wf.DispHighLatch - wf.DispLowLatch)
+
+		// Measure this specific label
+		labelWidth, _ := text.Measure(label, *rulerFace, 0)
+
+		// Center the label horizontally on the frequency
+		// We want the decimal point centered on freqX
+		// Find position of decimal point in the label
+		beforeDecimal := fmt.Sprintf("%.0f", math.Floor(freq))
+		beforeWidth, _ := text.Measure(beforeDecimal, *rulerFace, 0)
+		dotWidth, _ := text.Measure(".", *rulerFace, 0)
+
+		// Position so decimal point is at freqX
+		labelX := freqX - beforeWidth - dotWidth/2
+
+		// Skip if label would go off screen
+		if labelX < 0 || labelX+labelWidth > float64(wf.RulerWidth) {
+			continue
+		}
+
+		// Draw the label
+		textOpts := &text.DrawOptions{}
+		textOpts.GeoM.Translate(labelX, rulerY)
+		textOpts.ColorScale.ScaleWithColor(labelColor)
+		text.Draw(wf.RulerImg, label, *rulerFace, textOpts)
+	}
+}
+
 func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, u *UI, slice *Slice) {
 	// Position flag at top of waterfall, just to the right of marker
 	flagX := markerPos + 2
@@ -577,8 +714,12 @@ func (wf *Waterfall) Update(u *UI) {
 	}
 
 	wf.updateSize()
+	wf.updateRulerSize()
 	wf.handleFreqScroll()
 	wf.drawWaterfall()
+
+	// Draw frequency ruler
+	wf.drawFrequencyRuler(u)
 
 	// Draw slices in reverse letter order to avoid flickering
 	letters := slices.Sorted(maps.Keys(u.Widgets.WaterfallPage.Slices))
@@ -589,5 +730,4 @@ func (wf *Waterfall) Update(u *UI) {
 			wf.drawSliceMarker(slice, letter, u)
 		}
 	}
-
 }
