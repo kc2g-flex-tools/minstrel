@@ -190,6 +190,47 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 				),
 			),
 			widget.WidgetOpts.MouseButtonPressedHandler(func(args *widget.WidgetMouseButtonPressedEventArgs) {
+				clickPt := image.Pt(args.OffsetX, args.OffsetY)
+
+				// Build ordered slice list: active slice first, then inactive slices alphabetically
+				var orderedSlices []struct {
+					key   string
+					slice *Slice
+				}
+				letters := slices.Sorted(maps.Keys(wfw.Slices))
+				for _, letter := range letters {
+					slice := wfw.Slices[letter]
+					if !slice.Data.Present {
+						continue
+					}
+					if slice.Data.Active {
+						// Insert active slice at the front
+						orderedSlices = append([]struct {
+							key   string
+							slice *Slice
+						}{{letter, slice}}, orderedSlices...)
+					} else {
+						orderedSlices = append(orderedSlices, struct {
+							key   string
+							slice *Slice
+						}{letter, slice})
+					}
+				}
+
+				// Check if click is on arrow buttons in touch mode
+				if u.cfg.Touch {
+					for _, item := range orderedSlices {
+						if clickPt.In(item.slice.TuneDownBounds) {
+							go u.RadioShim.TuneSliceStep(item.slice.Data, -1)
+							return
+						}
+						if clickPt.In(item.slice.TuneUpBounds) {
+							go u.RadioShim.TuneSliceStep(item.slice.Data, 1)
+							return
+						}
+					}
+				}
+
 				now := time.Now()
 				if time.Since(wf.ClickTime) < 400*time.Millisecond {
 					freq := wf.DispLowLatch + (float64(args.OffsetX)/float64(wf.Width))*(wf.DispHighLatch-wf.DispLowLatch)
@@ -198,17 +239,18 @@ func (u *UI) MakeWaterfall(wfw *WaterfallWidgets) *Waterfall {
 					}
 				}
 				wf.ClickTime = now
-				for key, slice := range wfw.Slices {
-					if float64(args.OffsetX) >= slice.FootprintLeft && float64(args.OffsetX) <= slice.FootprintRight {
+				for _, item := range orderedSlices {
+					if float64(args.OffsetX) >= item.slice.FootprintLeft && float64(args.OffsetX) <= item.slice.FootprintRight {
 						wf.Drag = DragData{
 							Active: true,
-							What:   key,
+							What:   item.key,
 							Start:  float64(args.OffsetX),
-							Aux:    slice.TuneX - float64(args.OffsetX),
+							Aux:    item.slice.TuneX - float64(args.OffsetX),
 						}
-						if !slice.Data.Active {
-							u.RadioShim.ActivateSlice(slice.Data.Index)
+						if !item.slice.Data.Active {
+							u.RadioShim.ActivateSlice(item.slice.Data.Index)
 						}
+						break
 					}
 				}
 				if !wf.Drag.Active {
@@ -392,7 +434,7 @@ func (wf *Waterfall) drawWaterfall() {
 	}
 }
 
-func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, u *UI) {
+func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, u *UI, slice *Slice) {
 	// Position flag at top of waterfall, just to the right of marker
 	flagX := markerPos + 2
 	flagY := 2.0
@@ -405,6 +447,49 @@ func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, 
 		letterColor = sliceTXTextColor
 	}
 
+	bgWidth := float64(flagBg.Bounds().Dx())
+	bgHeight := float64(flagBg.Bounds().Dy())
+
+	// If touch mode is enabled, draw arrow buttons on either side
+	if u.cfg.Touch {
+		arrowSize := 24.0
+		arrowPadding := 2.0
+
+		// Draw left arrow button (tune down)
+		leftArrowX := flagX - arrowSize - arrowPadding
+		if leftArrowX >= 0 {
+			drawArrowButton(wf.Widget.Image, leftArrowX, flagY, arrowSize, bgHeight, true, u)
+			// Store bounds for click detection
+			slice.TuneDownBounds = image.Rect(
+				int(leftArrowX),
+				int(flagY),
+				int(leftArrowX+arrowSize),
+				int(flagY+bgHeight),
+			)
+		} else {
+			slice.TuneDownBounds = image.Rectangle{}
+		}
+
+		// Draw right arrow button (tune up)
+		rightArrowX := flagX + bgWidth + arrowPadding
+		if rightArrowX+arrowSize <= float64(wf.Width) {
+			drawArrowButton(wf.Widget.Image, rightArrowX, flagY, arrowSize, bgHeight, false, u)
+			// Store bounds for click detection
+			slice.TuneUpBounds = image.Rect(
+				int(rightArrowX),
+				int(flagY),
+				int(rightArrowX+arrowSize),
+				int(flagY+bgHeight),
+			)
+		} else {
+			slice.TuneUpBounds = image.Rectangle{}
+		}
+	} else {
+		// Clear bounds when not in touch mode
+		slice.TuneDownBounds = image.Rectangle{}
+		slice.TuneUpBounds = image.Rectangle{}
+	}
+
 	// Draw pre-rendered background with transparency
 	opts := &ebiten.DrawImageOptions{}
 	opts.GeoM.Translate(flagX, flagY)
@@ -413,7 +498,6 @@ func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, 
 
 	// Measure the actual letter width and calculate centering offset
 	letterWidth, _ := text.Measure(letter, *wf.SliceFlagFace, 0)
-	bgWidth := float64(flagBg.Bounds().Dx())
 	centerOffsetX := (bgWidth - letterWidth) / 2
 
 	// Draw the letter text centered
@@ -421,6 +505,40 @@ func (wf *Waterfall) drawSliceFlag(markerPos float64, letter string, isTX bool, 
 	textOpts.GeoM.Translate(flagX+centerOffsetX, flagY+sliceFlagPadding)
 	textOpts.ColorScale.ScaleWithColor(letterColor)
 	text.Draw(wf.Widget.Image, letter, *wf.SliceFlagFace, textOpts)
+}
+
+// drawArrowButton draws a clickable arrow button for tuning
+func drawArrowButton(img *ebiten.Image, x, y, width, height float64, isLeft bool, u *UI) {
+	// Draw rounded background
+	radius := float32(2.0)
+	bgColor := color.RGBA{0x40, 0x40, 0x40, 0xe0}
+
+	// Four corners
+	vector.DrawFilledCircle(img, float32(x)+radius, float32(y)+radius, radius, bgColor, true)
+	vector.DrawFilledCircle(img, float32(x+width)-radius, float32(y)+radius, radius, bgColor, true)
+	vector.DrawFilledCircle(img, float32(x)+radius, float32(y+height)-radius, radius, bgColor, true)
+	vector.DrawFilledCircle(img, float32(x+width)-radius, float32(y+height)-radius, radius, bgColor, true)
+
+	// Fill the middle rectangles
+	vector.DrawFilledRect(img, float32(x)+radius, float32(y), float32(width)-2*radius, float32(height), bgColor, true)
+	vector.DrawFilledRect(img, float32(x), float32(y)+radius, radius, float32(height)-2*radius, bgColor, true)
+	vector.DrawFilledRect(img, float32(x+width)-radius, float32(y)+radius, radius, float32(height)-2*radius, bgColor, true)
+
+	// Draw arrow icon
+	arrowIcon := "\ue5c4" // Left arrow
+	if !isLeft {
+		arrowIcon = "\ue5c8" // Right arrow
+	}
+
+	iconFace := u.Font("Icons-16")
+	iconWidth, _ := text.Measure(arrowIcon, *iconFace, 0)
+	iconX := x + (width-iconWidth)/2
+	iconY := y + sliceFlagPadding
+
+	textOpts := &text.DrawOptions{}
+	textOpts.GeoM.Translate(iconX, iconY)
+	textOpts.ColorScale.ScaleWithColor(colornames.White)
+	text.Draw(img, arrowIcon, *iconFace, textOpts)
 }
 
 func (wf *Waterfall) drawSliceMarker(slice *Slice, letter string, u *UI) {
@@ -450,7 +568,7 @@ func (wf *Waterfall) drawSliceMarker(slice *Slice, letter string, u *UI) {
 	})
 
 	// Draw the flag
-	wf.drawSliceFlag(markerPos, letter, data.TX, u)
+	wf.drawSliceFlag(markerPos, letter, data.TX, u, slice)
 }
 
 func (wf *Waterfall) Update(u *UI) {

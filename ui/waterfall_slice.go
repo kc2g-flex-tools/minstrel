@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"image/color"
 
 	ebimage "github.com/ebitenui/ebitenui/image"
@@ -39,6 +40,9 @@ type Slice struct {
 	TuneX           float64
 	VolumeSlider    *widget.Slider // Volume slider property
 	ActiveIndicator *widget.Text   // Active slice indicator icon
+	// Touch mode arrow button bounds for click detection
+	TuneDownBounds image.Rectangle
+	TuneUpBounds   image.Rectangle
 }
 
 func (u *UI) MakeSlice(letter string) *Slice {
