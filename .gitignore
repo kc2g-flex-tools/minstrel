@@ -2,3 +2,8 @@
 minstrel
 minstrel-amd64
 minstrel-arm64
+
+# AppImage build artifacts
+*.AppImage
+*.AppDir
+appimagetool-*.AppImage

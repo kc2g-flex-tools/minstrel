@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" version="1.1" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+ <!-- Outer shadow/background -->
+ <rect width="256" height="256" rx="20" fill="#0f0f1a"/>
+
+ <!-- Window frame (dark gray) -->
+ <rect x="8" y="8" width="240" height="240" rx="12" fill="#2d3748"/>
+
+ <!-- Title bar -->
+ <rect x="8" y="8" width="240" height="32" rx="12" fill="#1a202c"/>
+ <rect x="8" y="28" width="240" height="12" fill="#1a202c"/>
+
+ <!-- Slice panel A (left) -->
+ <rect x="16" y="48" width="70" height="36" rx="4" fill="#1e3a5f"/>
+ <text x="22" y="62" font-family="monospace" font-size="10" font-weight="bold" fill="#ff4444">A</text>
+ <text x="35" y="62" font-family="monospace" font-size="8" fill="#ff6666">RX_A</text>
+ <text x="22" y="76" font-family="monospace" font-size="9" fill="#e0e0e0">14.270</text>
+
+ <!-- Control buttons area (center) -->
+ <rect x="94" y="48" width="68" height="36" rx="4" fill="#374151"/>
+ <rect x="100" y="54" width="12" height="12" rx="2" fill="#4b5563"/>
+ <rect x="116" y="54" width="12" height="12" rx="2" fill="#4b5563"/>
+ <rect x="132" y="54" width="12" height="12" rx="2" fill="#4b5563"/>
+ <rect x="148" y="54" width="12" height="12" rx="2" fill="#4b5563"/>
+
+ <!-- Slice panel B (right) -->
+ <rect x="170" y="48" width="70" height="36" rx="4" fill="#1e3a5f"/>
+ <text x="176" y="62" font-family="monospace" font-size="10" font-weight="bold" fill="#00ddff">B</text>
+ <text x="189" y="62" font-family="monospace" font-size="8" fill="#66ddff">RX_B</text>
+ <text x="176" y="76" font-family="monospace" font-size="9" fill="#e0e0e0">14.280</text>
+
+ <!-- Main waterfall area - bright blue background -->
+ <rect x="16" y="92" width="224" height="148" rx="4" fill="#0044ff"/>
+
+ <!-- Waterfall traces - scattered yellow-green signals -->
+ <!-- Left side signals -->
+ <rect x="24" y="100" width="3" height="12" fill="#aaff00" opacity="0.9"/>
+ <rect x="24" y="116" width="2" height="8" fill="#ccff22" opacity="0.7"/>
+ <rect x="30" y="130" width="3" height="16" fill="#88dd00" opacity="0.8"/>
+ <rect x="42" y="106" width="2" height="20" fill="#ddff44" opacity="0.85"/>
+ <rect x="38" y="152" width="3" height="14" fill="#aaff00" opacity="0.75"/>
+
+ <!-- Strong signal around A marker -->
+ <rect x="68" y="98" width="4" height="28" fill="#ffff00" opacity="0.95"/>
+ <rect x="68" y="130" width="4" height="22" fill="#ffff00" opacity="0.95"/>
+ <rect x="68" y="156" width="4" height="18" fill="#ffff00" opacity="0.95"/>
+ <rect x="68" y="178" width="4" height="24" fill="#ffff00" opacity="0.95"/>
+ <rect x="68" y="206" width="4" height="16" fill="#ffff00" opacity="0.95"/>
+
+ <!-- Center signals -->
+ <rect x="96" y="112" width="2" height="16" fill="#aaff00" opacity="0.7"/>
+ <rect x="104" y="96" width="3" height="24" fill="#ccff44" opacity="0.85"/>
+ <rect x="112" y="138" width="2" height="12" fill="#88dd00" opacity="0.75"/>
+ <rect x="128" y="104" width="2" height="18" fill="#ddff55" opacity="0.8"/>
+ <rect x="144" y="122" width="3" height="20" fill="#aaff00" opacity="0.8"/>
+
+ <!-- Strong signal around B marker -->
+ <rect x="176" y="102" width="4" height="24" fill="#ffff00" opacity="0.95"/>
+ <rect x="176" y="130" width="4" height="26" fill="#ffff00" opacity="0.95"/>
+ <rect x="176" y="160" width="4" height="20" fill="#ffff00" opacity="0.95"/>
+ <rect x="176" y="184" width="4" height="28" fill="#ffff00" opacity="0.95"/>
+ <rect x="176" y="216" width="4" height="14" fill="#ffff00" opacity="0.95"/>
+
+ <!-- Right side signals -->
+ <rect x="198" y="108" width="2" height="14" fill="#aaff00" opacity="0.75"/>
+ <rect x="206" y="118" width="3" height="18" fill="#ccff33" opacity="0.8"/>
+ <rect x="214" y="140" width="2" height="12" fill="#88dd00" opacity="0.7"/>
+ <rect x="222" y="156" width="3" height="22" fill="#aaff00" opacity="0.85"/>
+ <rect x="228" y="186" width="2" height="16" fill="#ddff44" opacity="0.75"/>
+
+ <!-- Slice A marker (red/orange vertical line) -->
+ <rect x="70" y="92" width="2" height="148" fill="#ff4444" opacity="0.9"/>
+
+ <!-- Slice B marker (cyan vertical line) -->
+ <rect x="178" y="92" width="2" height="148" fill="#00ddff" opacity="0.9"/>
+
+ <!-- Add some subtle horizontal banding to waterfall for realism -->
+ <rect x="16" y="140" width="224" height="1" fill="#0066ff" opacity="0.3"/>
+ <rect x="16" y="180" width="224" height="1" fill="#0066ff" opacity="0.3"/>
+ <rect x="16" y="220" width="224" height="1" fill="#0066ff" opacity="0.3"/>
+</svg>

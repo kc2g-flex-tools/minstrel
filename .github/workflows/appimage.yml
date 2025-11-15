@@ -1,0 +1,79 @@
+name: Build AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-appimage:
+    name: Build AppImage (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libopus-dev \
+            libopusfile-dev \
+            libasound2-dev \
+            libglfw3-dev \
+            libxcursor-dev \
+            libxinerama-dev \
+            libxi-dev \
+            libxxf86vm-dev \
+            librsvg2-bin \
+            wget \
+            file
+
+      - name: Build AppImage
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          chmod +x build-appimage.sh
+          ./build-appimage.sh ${{ matrix.arch }}
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: minstrel-${{ steps.get_version.outputs.version }}-${{ matrix.arch }}.AppImage
+          path: minstrel-*.AppImage
+          if-no-files-found: error
+
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: minstrel-*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

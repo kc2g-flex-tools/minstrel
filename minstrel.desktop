@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Minstrel
+GenericName=FlexRadio Controller
+Comment=FlexRadio control with waterfall display and audio streaming
+Exec=minstrel
+Icon=minstrel
+Categories=HamRadio;Network;Audio;
+Terminal=false
+Keywords=radio;hamradio;flex;sdr;waterfall;
