@@ -34,10 +34,11 @@ type widgets struct {
 }
 
 type Config struct {
-	Touch bool    `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
-	FPS   int     `dialsdesc:"Framerate" dialsflag:"fps"`
-	Kiosk bool    `dialsdesc:"Kiosk mode (fullscreen, I own the machine)" dialsflag:"kiosk"`
-	Scale float64 `dialsdesc:"UI Scale factor" dialsflag:"scale"`
+	Touch      bool    `dialsdesc:"Touchscreen mode" dialsflag:"touch"`
+	FPS        int     `dialsdesc:"Framerate" dialsflag:"fps"`
+	Kiosk      bool    `dialsdesc:"Kiosk mode (I own the machine)" dialsflag:"kiosk"`
+	Fullscreen bool    `dialsdesc:"Start in fullscreen mode" dialsflag:"fullscreen"`
+	Scale      float64 `dialsdesc:"UI Scale factor" dialsflag:"scale"`
 }
 
 func DefaultConfig() *Config {
@@ -106,7 +107,7 @@ func NewUI(cfg *Config, eventBus *events.Bus) *UI {
 	if cfg.Touch {
 		ebiten.SetCursorMode(ebiten.CursorModeHidden)
 	}
-	if cfg.Kiosk {
+	if cfg.Fullscreen {
 		ebiten.SetFullscreen(true)
 	}
 	return u
