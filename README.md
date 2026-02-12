@@ -6,7 +6,7 @@ PipeWire.
 
 ## Roadmap
 
-Minstrel is currently Alpha-quality software. It's not a complete replacement for a Copy of SmartSDR or a Maestro. It
+Minstrel is currently alpha-quality software. It's not a complete replacement for SmartSDR or a Maestro. It
 has many bugs and limitations. However, it works well enough to make a basic voice QSO with.
 
 ### Implemented
